@@ -268,6 +268,11 @@ struct fg_dt_props {
 	int	slope_limit_coeffs[SLOPE_LIMIT_NUM_COEFFS];
 };
 
+struct fg_saved_data {
+	union power_supply_propval val;
+	unsigned long last_req_expires;
+};
+
 struct fg_gen4_chip {
 	struct fg_dev		fg;
 	struct fg_dt_props	dt;
@@ -329,6 +334,7 @@ struct fg_gen4_chip {
 	bool			soc_scale_mode;
 	bool			chg_term_good;
 	bool			cold_thermal_support;
+	struct fg_saved_data	saved_data[POWER_SUPPLY_PROP_MAX];
 };
 
 struct bias_config {
@@ -4472,6 +4478,8 @@ static struct kernel_param_ops fg_esr_cal_ops = {
 
 module_param_cb(esr_fast_cal_en, &fg_esr_cal_ops, &fg_esr_fast_cal_en, 0644);
 
+#define FG_RATE_LIM_MS (5 * MSEC_PER_SEC)
+
 /* All power supply functions here */
 #define SHUTDOWN_DELAY_VOL	3300
 static int fg_psy_get_property(struct power_supply *psy,
@@ -4480,11 +4488,54 @@ static int fg_psy_get_property(struct power_supply *psy,
 {
 	struct fg_gen4_chip *chip = power_supply_get_drvdata(psy);
 	struct fg_dev *fg = &chip->fg;
+	struct fg_saved_data *sd = chip->saved_data + psp;
+	union power_supply_propval typec_sts = { .intval = -1 };
 	int rc = 0, val;
 	int64_t temp;
 	int vbatt_uv;
 	static bool shutdown_delay_cancel;
 	static bool last_shutdown_delay;
+
+	switch (psp) {
+	case POWER_SUPPLY_PROP_RESISTANCE_ID:
+	case POWER_SUPPLY_PROP_CHARGE_NOW:
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
+	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+	case POWER_SUPPLY_PROP_SOC_REPORTING_READY:
+	case POWER_SUPPLY_PROP_DEBUG_BATTERY:
+	case POWER_SUPPLY_PROP_ESR_ACTUAL:
+	case POWER_SUPPLY_PROP_ESR_NOMINAL:
+	case POWER_SUPPLY_PROP_SOH:
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
+	case POWER_SUPPLY_PROP_CLEAR_SOH:
+	case POWER_SUPPLY_PROP_CC_STEP:
+	case POWER_SUPPLY_PROP_CC_STEP_SEL:
+	case POWER_SUPPLY_PROP_BATT_AGE_LEVEL:
+	case POWER_SUPPLY_PROP_SCALE_MODE_EN:
+	case POWER_SUPPLY_PROP_CALIBRATE:
+		/* These props don't require a fg query; don't ratelimit them */
+		break;
+	default:
+		if (!sd->last_req_expires) {
+			break;
+		}
+
+		if (usb_psy_initialized(fg)) {
+			rc = power_supply_get_property(fg->usb_psy,
+				POWER_SUPPLY_PROP_TYPEC_MODE, &typec_sts);
+			if (rc < 0) {
+				pr_err("Couldn't read usb present prop rc=%d\n", rc);
+				return -ENODATA;
+			}
+		}
+
+		if (typec_sts.intval == POWER_SUPPLY_TYPEC_NONE &&
+			time_before(jiffies, sd->last_req_expires)) {
+			*pval = sd->val;
+			return 0;
+		}
+		break;
+	}
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CAPACITY:
@@ -4678,6 +4729,9 @@ static int fg_psy_get_property(struct power_supply *psy,
 		rc = -EINVAL;
 		break;
 	}
+
+	sd->val = *pval;
+	sd->last_req_expires = jiffies + msecs_to_jiffies(FG_RATE_LIM_MS);
 
 	if (rc < 0)
 		return -ENODATA;
