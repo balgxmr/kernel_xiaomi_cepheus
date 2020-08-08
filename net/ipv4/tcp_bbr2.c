@@ -77,8 +77,8 @@
 #define BBR_SCALE 8	/* scaling factor for fractions in BBR (e.g. gains) */
 #define BBR_UNIT (1 << BBR_SCALE)
 
-#define FLAG_DEBUG_VERBOSE	0x1	/* Verbose debugging messages */
-#define FLAG_DEBUG_LOOPBACK	0x2	/* Do NOT skip loopback addr */
+#define FLAG_DEBUG_VERBOSE	0x0	/* Verbose debugging messages */
+#define FLAG_DEBUG_LOOPBACK	0x0	/* Do NOT skip loopback addr */
 
 #define CYCLE_LEN		8	/* number of phases in a pacing gain cycle */
 
@@ -328,7 +328,7 @@ static u32 bbr_full_bw_thresh = BBR_UNIT * 5 / 4;
  */
 static u32 bbr_full_bw_cnt = 3;
 
-static u32 bbr_flags;		/* Debugging related stuff */
+static u32 bbr_flags = 0;		/* Debugging related stuff */
 
 /* Experiment: each cycle, try to hold sub-unity gain until inflight <= BDP. */
 static bool bbr_drain_to_target = true;		/* default: enabled */
@@ -389,7 +389,6 @@ module_param_named(cwnd_min_target,   bbr_cwnd_min_target,   uint,   0644);
 module_param_named(probe_rtt_cwnd_gain,
 		   bbr_probe_rtt_cwnd_gain,		     uint,   0664);
 module_param_named(cwnd_warn_val,     bbr_cwnd_warn_val,     uint,   0664);
-module_param_named(flags,             bbr_flags,             uint,   0644);
 module_param_named(min_rtt_win_sec,   bbr_min_rtt_win_sec,   uint,   0644);
 module_param_named(probe_rtt_mode_ms, bbr_probe_rtt_mode_ms, uint,   0644);
 module_param_named(probe_rtt_win_ms,  bbr_probe_rtt_win_ms,  uint,   0644);
