@@ -2536,7 +2536,7 @@ static ssize_t fts_doze_time_store(struct device *dev,
 	u16 reg_val = 0;
 	struct fts_ts_info *info = dev_get_drvdata(dev);
 
-	pr_info("%s,buf:%s,count:%zu\n", __func__, buf, count);
+	pr_debug("%s,buf:%s,count:%zu\n", __func__, buf, count);
 	sscanf(buf, "%u", &info->doze_time);
 	/*reg value * 10 represents of the num of frames ,one frame is about 8ms, the input value is ms*/
 	reg_val = (info->doze_time / 8 - 1) / 10;
@@ -2566,7 +2566,7 @@ static ssize_t fts_grip_enable_store(struct device *dev,
 	int ret = 0;
 	struct fts_ts_info *info = dev_get_drvdata(dev);
 
-	pr_info("%s,buf:%s,count:%zu\n", __func__, buf, count);
+	pr_debug("%s,buf:%s,count:%zu\n", __func__, buf, count);
 	sscanf(buf, "%u", &info->grip_enabled);
 	cmd[2] = info->grip_enabled;
 	ret = fts_write_dma_safe(cmd, ARRAY_SIZE(cmd));
