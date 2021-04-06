@@ -172,6 +172,9 @@ static void __cpu_input_boost_kick(struct boost_drv *b)
 	if (!input_boost_duration)
 		return;
 
+	if (!input_boost_duration)
+		return;
+
 	set_bit(INPUT_BOOST, &b->state);
 	if (!mod_delayed_work(system_unbound_wq, &b->input_unboost,
 			      msecs_to_jiffies(input_boost_duration)))
