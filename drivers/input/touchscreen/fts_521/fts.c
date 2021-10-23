@@ -3209,10 +3209,6 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info,
 		"%s  %s :  Event 0x%02x - ID[%d], (x, y, z) = (%3d, %3d, %3d) type = %d, size = %d, overlap:%d\n",
 		tag, __func__, *event, touchId, x, y, z, touchType, area_size,
 		info->fod_overlap);
-	if (event[0] == 0x13)
-		logError(1,
-			"%s  %s :  Event 0x%02x - Press ID[%d] type = %d\n", tag,
-				__func__, event[0], touchId, touchType);
 
 #ifndef CONFIG_FTS_FOD_AREA_REPORT
 no_report:
@@ -3336,9 +3332,6 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info,
 			__func__, touchId, touchType);
 	else
 #endif
-		logError(1,
-			"%s  %s :  Event 0x%02x - release ID[%d] type = %d\n", tag,
-			__func__, event[0], touchId, touchType);
 
 	input_sync(info->input_dev);
 #ifdef CONFIG_FTS_FOD_AREA_REPORT
