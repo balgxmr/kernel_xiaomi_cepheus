@@ -619,5 +619,7 @@ config CHARGER_NU1618
 source "drivers/power/supply/google/Kconfig"
 
 source "drivers/power/supply/qcom/Kconfig"
+source "drivers/power/supply/maxim/Kconfig"
+source "drivers/power/supply/ti/Kconfig"
 
 endif # POWER_SUPPLY

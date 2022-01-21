@@ -1,5 +1,5 @@
 /* Copyright (c) 2017-2020 The Linux Foundation. All rights reserved.
- * Copyright (C) 2019 XiaoMi, Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1344,6 +1344,11 @@ static int usb_icl_vote_callback(struct votable *votable, void *data,
 
 	vote(chip->pl_disable_votable, ICL_CHANGE_VOTER, false, 0);
 
+	/* Configure ILIM based on AICL result only if input mode is USBMID */
+	if (cp_get_parallel_mode(chip, PARALLEL_INPUT_MODE)
+					== POWER_SUPPLY_PL_USBMID_USBMID)
+		cp_configure_ilim(chip, ICL_CHANGE_VOTER, icl_ua);
+
 	if (!chip->usb_psy)
 		chip->usb_psy = power_supply_get_by_name("usb");
 	if (!chip->usb_psy) {
@@ -1365,10 +1370,7 @@ static int usb_icl_vote_callback(struct votable *votable, void *data,
 			vote(chip->cp_ilim_votable, ICL_CHANGE_VOTER, false, 0);
 	}
 
-	/* Configure ILIM based on AICL result only if input mode is USBMID */
-	if (cp_get_parallel_mode(chip, PARALLEL_INPUT_MODE)
-					== POWER_SUPPLY_PL_USBMID_USBMID)
-		cp_configure_ilim(chip, ICL_CHANGE_VOTER, icl_ua);
+	cp_configure_ilim(chip, ICL_CHANGE_VOTER, icl_ua);
 
 	return 0;
 }
