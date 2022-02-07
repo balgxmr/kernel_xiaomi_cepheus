@@ -119,4 +119,3 @@ obj-$(CONFIG_TOUCHSCREEN_ST_FTS_V521) += fts_521/
 obj-$(CONFIG_TOUCHSCREEN_NT36XX)       += nt36xxx/
 obj-$(CONFIG_TOUCHSCREEN_ST_FTS_V521) += fts_521/
 obj-$(CONFIG_INPUT_PRESS_NDT) += ndt_core.o
-obj-$(CONFIG_TOUCHSCREEN_NT36XX)       += nt36xxx/
