@@ -9,20 +9,19 @@ restore='\033[0m'
 clear
 
 # Resources
-export CLANG_PATH=/datadrive/sov/prebuilts/clang/host/linux-x86/clang-azure/bin
+export CLANG_PATH=/home/mihau/mykernel/azure-clang-main/bin
 export PATH=${CLANG_PATH}:${PATH}
 export CROSS_COMPILE=${CLANG_PATH}/aarch64-linux-gnu-
 export CROSS_COMPILE_ARM32=${CLANG_PATH}/arm-linux-gnueabi-
-export THINLTO_CACHE=/datadrive/kernel/ltocache/
-DEFCONFIG="raphael_defconfig"
+DEFCONFIG="cepheus_defconfig"
 
 # Kernel Details
-VER="R3.3-SYB"
+VER="1.0"
 
 # Paths
 KERNEL_DIR=`pwd`
-REPACK_DIR=/datadrive/AnyKernel3
-ZIP_MOVE=/datadrive/AK-releases
+REPACK_DIR=/home/mihau/mykernel/AnyKernel3
+ZIP_MOVE=/home/mihau/mykernel
 
 # Functions
 function clean_all {
@@ -64,7 +63,7 @@ echo -e "${restore}"
 
 
 # Vars
-BASE_AK_VER="SOVIET-STAR-K20P-"
+BASE_AK_VER="POST-SOVIET-MI9-"
 DATE=`date +"%Y%m%d-%H%M"`
 AK_VER="$BASE_AK_VER$VER"
 ZIP_NAME="$AK_VER"-"$DATE"
@@ -72,8 +71,8 @@ ZIP_NAME="$AK_VER"-"$DATE"
 #export LOCALVERSION=~`echo $AK_VER`
 export ARCH=arm64
 export SUBARCH=arm64
-export KBUILD_BUILD_USER=NATO66613
-export KBUILD_BUILD_HOST=KREMLIN
+export KBUILD_BUILD_USER=Mihau
+export KBUILD_BUILD_HOST=Mihau
 
 echo
 
@@ -99,7 +98,7 @@ done
 
 echo
 
-while read -p "Do you want to build?" dchoice
+while read -p "Do you want to build? (y/n)" dchoice
 do
 case "$dchoice" in
 	y|Y )
