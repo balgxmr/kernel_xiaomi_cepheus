@@ -499,7 +499,7 @@ static void rx1618_wireless_work(struct work_struct *work)
 	struct rx1618_chg *chip = container_of(work, struct rx1618_chg, wireless_work.work);
 
 	mutex_lock(&chip->wireless_chg_lock);
-	queue_delayed_work(system_power_efficient_wq, &chip->wireless_work, msecs_to_jiffies(RX1618_DELAY_MS));
+	schedule_delayed_work(&chip->wireless_work, msecs_to_jiffies(RX1618_DELAY_MS));
 	mutex_unlock(&chip->wireless_chg_lock);  
 
 	dev_err(chip->dev, "[rx1618] [%s] enter \n",__func__);
@@ -914,8 +914,8 @@ static irqreturn_t rx1618_chg_stat_handler(int irq, void *dev_id)
 			int_done_flag = true;
 			//chip->online = 1;
 
-			queue_delayed_work(system_power_efficient_wq, &chip->wireless_work, 0);
-			queue_delayed_work(system_power_efficient_wq, &chip->wireless_int_work, 0);
+			schedule_delayed_work(&chip->wireless_work, 0);
+			schedule_delayed_work(&chip->wireless_int_work, 0);
 			dev_err(chip->dev, "[rx1618] [%s] Wireless Online \n",__func__);
 		}
 	}
