@@ -175,9 +175,6 @@ static void __cpu_input_boost_kick(struct boost_drv *b)
 	if (!input_boost_duration)
 		return;
 
-	if (!input_boost_duration)
-		return;
-
 	if (kp_active_mode() == 3)
 		multi = 2;
 
