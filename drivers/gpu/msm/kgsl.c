@@ -5284,7 +5284,7 @@ static int __init kgsl_core_init(void)
 	}
 
 	kgsl_driver.mem_workqueue = alloc_workqueue("kgsl-mementry",
-		WQ_UNBOUND | WQ_MEM_RECLAIM | WQ_FREEZABLE, 0);
+		WQ_UNBOUND | WQ_MEM_RECLAIM, 0);
 
 	if (!kgsl_driver.mem_workqueue) {
 		pr_err("kgsl: Failed to allocate mem workqueue\n");
