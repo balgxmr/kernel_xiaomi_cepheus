@@ -551,6 +551,7 @@
 
 	chosen {
 		bootargs = "quiet rcupdate.rcu_expedited=1 rcupdate.rcu_normal_after_boot=1 rcu_nocbs=0-7 noirqdebug nodebugmon kpti=off cgroup_disable=pressure";
+		rng-seed = <0x12345678>;
 	};
 
 	soc: soc { };
@@ -739,7 +740,7 @@
 			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
 			reusable;
 			alignment = <0x0 0x400000>;
-			size = <0x0 0x2800000>;
+			size = <0x0 0x8000000>;
 			linux,cma-default;
 		};
 	};

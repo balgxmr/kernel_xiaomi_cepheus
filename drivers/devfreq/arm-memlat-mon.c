@@ -131,15 +131,23 @@ static void read_evs_ipi(void *info)
 {
 	int cpu = raw_smp_processor_id();
 	struct ipi_data *ipd = info;
+	struct task_struct *waiter;
 
 	read_perf_counters(ipd, cpu);
 
 	/*
-	 * Wake up the waiter task if we're the final CPU. A release barrier
-	 * ensures that the counters are stored before the atomic finishes.
+	 * Wake up the waiter task if we're the final CPU. The ipi_data pointer
+	 * isn't safe to dereference once cpus_left reaches zero, so the waiter
+	 * task_struct pointer must be cached before that. Also defend against
+	 * the extremely unlikely possibility that the waiter task will have
+	 * exited by the time wake_up_process() is reached.
 	 */
-	if (atomic_fetch_andnot_release(BIT(cpu), &ipd->cpus_left) == BIT(cpu))
-		wake_up_process(ipd->waiter_task);
+	waiter = ipd->waiter_task;
+	get_task_struct(waiter);
+	if (atomic_fetch_andnot(BIT(cpu), &ipd->cpus_left) == BIT(cpu) &&
+	    waiter->state != TASK_RUNNING)
+		wake_up_process(waiter);
+	put_task_struct(waiter);
 }
 
 static void read_any_cpu_events(struct ipi_data *ipd, unsigned long cpus)
@@ -190,7 +198,8 @@ static unsigned long get_cnt(struct memlat_hwmon *hw)
 	ipd.cpu_grp = cpu_grp;
 
 	/* Dispatch asynchronous IPIs to each CPU to read the perf events */
-	migrate_disable();
+	cpus_read_lock();
+	preempt_disable();
 	this_cpu = raw_smp_processor_id();
 	cpus_read_mask = *cpumask_bits(&cpu_grp->cpus);
 	tmp_mask = cpus_read_mask & ~BIT(this_cpu);
@@ -198,27 +207,27 @@ static unsigned long get_cnt(struct memlat_hwmon *hw)
 	for_each_cpu(cpu, to_cpumask(&tmp_mask)) {
 		/*
 		 * Some SCM calls take very long (20+ ms), so the IPI could lag
-		 * on the CPU running the SCM call. Skip it.
+		 * on the CPU running the SCM call. Skip offline CPUs too.
 		 */
-		if (under_scm_call(cpu))
+		csd[cpu].flags = 0;
+		if (under_scm_call(cpu) ||
+		    generic_exec_single(cpu, &csd[cpu], read_evs_ipi, &ipd))
 			cpus_read_mask &= ~BIT(cpu);
-		else
-			generic_exec_single(cpu, &csd[cpu], read_evs_ipi, &ipd);
 	}
-	/* Bail out if there weren't any CPUs available */
-	if (!cpus_read_mask) {
-		migrate_enable();
-		return 0;
-	}
+	cpus_read_unlock();
 	/* Read this CPU's events while the IPIs run */
 	if (cpus_read_mask & BIT(this_cpu))
 		read_perf_counters(&ipd, this_cpu);
-	migrate_enable();
+	preempt_enable();
+
+	/* Bail out if there weren't any CPUs available */
+	if (!cpus_read_mask)
+		return 0;
 
 	/* Read any any-CPU events while the IPIs run */
 	read_any_cpu_events(&ipd, cpus_read_mask);
 
-	/* Clear out CPUs which were skipped due to SCM calls */
+	/* Clear out CPUs which were skipped */
 	atomic_andnot(cpus_read_mask ^ tmp_mask, &ipd.cpus_left);
 
 	/*

@@ -1041,6 +1041,7 @@ static int exec_mmap(struct mm_struct *mm)
 	active_mm = tsk->active_mm;
 	tsk->active_mm = mm;
 	tsk->mm = mm;
+	lru_gen_add_mm(mm);
 	/*
 	 * This prevents preemption while active_mm is being loaded and
 	 * it and mm are being updated, which could cause problems for
@@ -1053,6 +1054,7 @@ static int exec_mmap(struct mm_struct *mm)
 	activate_mm(active_mm, mm);
 	if (IS_ENABLED(CONFIG_ARCH_WANT_IRQS_OFF_ACTIVATE_MM))
 		local_irq_enable();
+	lru_gen_use_mm(mm);
 	tsk->mm->vmacache_seqnum = 0;
 	vmacache_flush(tsk);
 	task_unlock(tsk);
@@ -1817,6 +1819,9 @@ static int do_execveat_common(int fd, struct filename *filename,
 		goto out_unmark;
 
 	bprm.argc = count(argv, MAX_ARG_STRINGS);
+	if (bprm.argc == 0)
+		pr_warn_once("process '%s' launched '%s' with NULL argv: empty string added\n",
+			     current->comm, bprm.filename);
 	if ((retval = bprm.argc) < 0)
 		goto out;
 
@@ -1840,6 +1845,20 @@ static int do_execveat_common(int fd, struct filename *filename,
 	retval = copy_strings(bprm.argc, argv, &bprm);
 	if (retval < 0)
 		goto out;
+
+	/*
+	 * When argv is empty, add an empty string ("") as argv[0] to
+	 * ensure confused userspace programs that start processing
+	 * from argv[1] won't end up walking envp. See also
+	 * bprm_stack_limits().
+	 */
+	if (bprm.argc == 0) {
+		const char *argv[] = { "", NULL };
+		retval = copy_strings_kernel(1, argv, &bprm);
+		if (retval < 0)
+			goto out;
+		bprm.argc = 1;
+	}
 
 	// Super nasty hack to disable lmkd reloading props
 	if (unlikely(strcmp(bprm.filename, "/system/bin/lmkd") == 0)) {

@@ -30,8 +30,7 @@ bool f2fs_may_inline_data(struct inode *inode)
 	if (!support_inline_data(inode))
 		return false;
 
-	return !(f2fs_encrypted_file(inode) || fsverity_active(inode) ||
-		f2fs_compressed_file(inode));
+	return !f2fs_post_read_required(inode);
 }
 
 bool f2fs_sanity_check_inline_data(struct inode *inode)
