@@ -594,7 +594,7 @@ int ext4_ext_precache(struct inode *inode)
 	down_read(&ei->i_data_sem);
 	depth = ext_depth(inode);
 
-	path = kzalloc(sizeof(struct ext4_ext_path) * (depth + 1),
+	path = kcalloc(depth + 1, sizeof(struct ext4_ext_path),
 		       GFP_NOFS);
 	if (path == NULL) {
 		up_read(&ei->i_data_sem);
@@ -903,7 +903,7 @@ ext4_find_extent(struct inode *inode, ext4_lblk_t block,
 	}
 	if (!path) {
 		/* account possible depth increase */
-		path = kzalloc(sizeof(struct ext4_ext_path) * (depth + 2),
+		path = kcalloc(depth + 2, sizeof(struct ext4_ext_path),
 				GFP_NOFS);
 		if (unlikely(!path))
 			return ERR_PTR(-ENOMEM);
@@ -1090,7 +1090,7 @@ static int ext4_ext_split(handle_t *handle, struct inode *inode,
 	 * We need this to handle errors and free blocks
 	 * upon them.
 	 */
-	ablocks = kzalloc(sizeof(ext4_fsblk_t) * depth, GFP_NOFS);
+	ablocks = kcalloc(depth, sizeof(ext4_fsblk_t), GFP_NOFS);
 	if (!ablocks)
 		return -ENOMEM;
 
@@ -2854,6 +2854,7 @@ int ext4_ext_remove_space(struct inode *inode, ext4_lblk_t start,
 	struct ext4_sb_info *sbi = EXT4_SB(inode->i_sb);
 	int depth = ext_depth(inode);
 	struct ext4_ext_path *path = NULL;
+	struct ext4_ext_path path_onstack[SZ_4K / sizeof(*path)] __aligned(8);
 	long long partial_cluster = 0;
 	handle_t *handle;
 	int i = 0, err = 0;
@@ -2962,11 +2963,15 @@ again:
 			path[k].p_block =
 				le16_to_cpu(path[k].p_hdr->eh_entries)+1;
 	} else {
-		path = kzalloc(sizeof(struct ext4_ext_path) * (depth + 1),
-			       GFP_NOFS);
-		if (path == NULL) {
-			ext4_journal_stop(handle);
-			return -ENOMEM;
+		if (depth + 1 <= ARRAY_SIZE(path_onstack)) {
+			path = path_onstack;
+			memset(path, 0, sizeof(*path) * (depth + 1));
+		} else {
+			path = kcalloc(depth + 1, sizeof(*path), GFP_NOFS);
+			if (path == NULL) {
+				ext4_journal_stop(handle);
+				return -ENOMEM;
+			}
 		}
 		path[0].p_maxdepth = path[0].p_depth = depth;
 		path[0].p_hdr = ext_inode_hdr(inode);
@@ -3089,7 +3094,8 @@ again:
 	}
 out:
 	ext4_ext_drop_refs(path);
-	kfree(path);
+	if (path != path_onstack)
+		kfree(path);
 	path = NULL;
 	if (err == -EAGAIN)
 		goto again;

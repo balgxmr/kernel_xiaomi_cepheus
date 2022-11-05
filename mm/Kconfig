@@ -264,6 +264,18 @@ config COMPACTION
           it and then we would be really interested to hear about that at
           linux-mm@kvack.org.
 
+config PROCESS_RECLAIM
+	bool "Enable process reclaim"
+	depends on PROC_FS
+	default n
+	help
+	 It allows to reclaim pages of the process by /proc/pid/reclaim.
+
+	 (echo file > /proc/PID/reclaim) reclaims file-backed pages only.
+	 (echo anon > /proc/PID/reclaim) reclaims anonymous pages only.
+	 (echo all > /proc/PID/reclaim) reclaims all pages.
+
+	 Any other value is ignored.
 #
 # support for page migration
 #
@@ -826,26 +838,6 @@ config HAVE_LOW_MEMORY_KILLER
 	  want page allocator to provide sufficient time before it triggers
 	  Out of Memory killer.
 
-config PROCESS_RECLAIM
-	bool "Enable process reclaim"
-	depends on PROC_FS
-	default y
-	help
-	 It allows to reclaim pages of the process by /proc/pid/reclaim.
-
-	 (echo file > /proc/PID/reclaim) reclaims file-backed pages only.
-	 (echo anon > /proc/PID/reclaim) reclaims anonymous pages only.
-	 (echo all > /proc/PID/reclaim) reclaims all pages.
-
-	 (echo addr size-byte > /proc/PID/reclaim) reclaims pages in
-	 (addr, addr + size-bytes) of the process.
-
-	 Any other value is ignored.
-
-config VMSTAT_INTERVAL
-	int "Default interval in seconds to update vmstat"
-	default 1
-
 config FORCE_ALLOC_FROM_DMA_ZONE
 	bool "Force certain memory allocators to always return ZONE_DMA memory"
 	depends on ZONE_DMA
@@ -853,15 +845,6 @@ config FORCE_ALLOC_FROM_DMA_ZONE
 	  Ensure certain memory allocators always return memory from ZONE_DMA.
 	  This option helps ensure that clients who require ZONE_DMA memory are
 	  always using ZONE_DMA memory.
-
-	  If unsure, say "n".
-
-config OPLUS_MM_HACKS
-	bool "Enable oplus memory management hacks"
-	default n
-	help
-	  Improves memory management drastically as these hacks are used in Oplus devices.
-	  Tested on devices made by OEMs like Motorola and Samsung.
 
 	  If unsure, say "n".
 
@@ -889,14 +872,3 @@ config LRU_GEN_STATS
 	  This option has a per-memcg and per-node memory overhead.
 # }
 
-config MULTIPLE_KSWAPD
-	bool "Spawn multiple kswapd threads"
-	default y
-	help
-	 kswapd_threads allows you to control the number of kswapd threads
-	 per node running on the system. The default value is 1 and the
-	 range of acceptible values are 1-16. The number of threads can
-	 be controlled by below command:
-	 (echo <num> > /proc/sys/vm/kswapd_threads)
-
-	 Values not in the range of 1..16 are ignored.

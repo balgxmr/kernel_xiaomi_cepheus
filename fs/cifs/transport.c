@@ -153,8 +153,8 @@ smb_send_kvec(struct TCP_Server_Info *server, struct msghdr *smb_msg,
 
 	*sent = 0;
 
-	smb_msg->msg_name = (struct sockaddr *) &server->dstaddr;
-	smb_msg->msg_namelen = sizeof(struct sockaddr);
+	smb_msg->msg_name = NULL;
+	smb_msg->msg_namelen = 0;
 	smb_msg->msg_control = NULL;
 	smb_msg->msg_controllen = 0;
 	if (server->noblocksnd)
@@ -822,7 +822,7 @@ SendReceive2(const unsigned int xid, struct cifs_ses *ses,
 	struct kvec *new_iov;
 	int rc;
 
-	new_iov = kmalloc(sizeof(struct kvec) * (n_vec + 1), GFP_KERNEL);
+	new_iov = kmalloc_array(n_vec + 1, sizeof(struct kvec), GFP_KERNEL);
 	if (!new_iov)
 		return -ENOMEM;
 

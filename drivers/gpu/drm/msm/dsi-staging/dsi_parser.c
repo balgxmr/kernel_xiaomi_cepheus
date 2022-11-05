@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -234,15 +234,18 @@ static bool dsi_parser_parse_prop(struct device *dev,
 {
 	bool found = false;
 	char *out = strsep(&buf, "=");
+	size_t buf_len;
 
 	if (!out || !buf)
 		goto end;
 
-	prop->raw = devm_kzalloc(dev, strlen(buf) + 1, GFP_KERNEL);
+	buf_len = strlen(buf);
+
+	prop->raw = devm_kzalloc(dev, buf_len + 1, GFP_KERNEL);
 	if (!prop->raw)
 		goto end;
 
-	strlcpy(prop->raw, buf, strlen(buf) + 1);
+	strlcpy(prop->raw, buf, buf_len + 1);
 
 	found = true;
 
@@ -254,7 +257,7 @@ static bool dsi_parser_parse_prop(struct device *dev,
 	if (dsi_parser_get_strings(dev, prop, buf))
 		goto end;
 
-	prop->items = devm_kzalloc(dev, strlen(buf) * 2, GFP_KERNEL);
+	prop->items = devm_kcalloc(dev, strlen(buf), 2, GFP_KERNEL);
 	if (!prop->items)
 		goto end;
 

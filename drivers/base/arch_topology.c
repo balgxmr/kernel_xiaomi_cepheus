@@ -22,6 +22,7 @@
 #include <linux/string.h>
 #include <linux/sched/topology.h>
 #include <linux/sched/energy.h>
+#include <linux/sched/sysctl.h>
 #include <linux/cpuset.h>
 
 DEFINE_PER_CPU(unsigned long, freq_scale) = SCHED_CAPACITY_SCALE;
@@ -119,6 +120,9 @@ static ssize_t cpu_capacity_show(struct device *dev,
 				 char *buf)
 {
 	struct cpu *cpu = container_of(dev, struct cpu, dev);
+
+	if (is_sched_lib_based_app(current->pid))
+		return scnprintf(buf, PAGE_SIZE, "%lu\n", SCHED_CAPACITY_SCALE);
 
 	return sprintf(buf, "%lu\n", topology_get_cpu_scale(NULL, cpu->dev.id));
 }
@@ -228,20 +232,25 @@ int detect_share_cap_flag(void)
 		if (cpumask_equal(cpu_cpu_mask(cpu),
 				  policy->related_cpus)) {
 			share_cap_level = share_cap_die;
+			cpufreq_cpu_put(policy);
 			continue;
 		}
 
 		if (cpumask_equal(topology_core_cpumask(cpu),
 				  policy->related_cpus)) {
 			share_cap_level = share_cap_core;
+			cpufreq_cpu_put(policy);
 			continue;
 		}
 
 		if (cpumask_equal(topology_sibling_cpumask(cpu),
 				  policy->related_cpus)) {
 			share_cap_level = share_cap_thread;
+			cpufreq_cpu_put(policy);
 			continue;
 		}
+
+		cpufreq_cpu_put(policy);
 	}
 
 	if (share_cap != share_cap_level) {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1463,8 +1463,6 @@ static int cam_icp_hw_mgr_create_debugfs_entry(void)
 		goto err;
 	}
 
-	/* Set default hang dump lvl */
-	icp_hw_mgr.a5_fw_dump_lvl = HFI_FW_DUMP_ON_FAILURE;
 	return rc;
 err:
 	debugfs_remove_recursive(icp_hw_mgr.dentry);
@@ -5217,8 +5215,9 @@ static int cam_icp_mgr_alloc_devs(struct device_node *of_node)
 		goto num_a5_failed;
 	}
 
-	icp_hw_mgr.devices[CAM_ICP_DEV_A5] = kzalloc(
-		sizeof(struct cam_hw_intf *) * num_dev, GFP_KERNEL);
+	icp_hw_mgr.devices[CAM_ICP_DEV_A5] = kcalloc(num_dev,
+						     sizeof(struct cam_hw_intf *),
+						     GFP_KERNEL);
 	if (!icp_hw_mgr.devices[CAM_ICP_DEV_A5]) {
 		rc = -ENOMEM;
 		goto num_a5_failed;
@@ -5373,20 +5372,20 @@ static int cam_icp_mgr_create_wq(void)
 	}
 
 	icp_hw_mgr.cmd_work_data = (struct hfi_cmd_work_data *)
-		kzalloc(sizeof(struct hfi_cmd_work_data) * ICP_WORKQ_NUM_TASK,
-		GFP_KERNEL);
+		kcalloc(ICP_WORKQ_NUM_TASK, sizeof(struct hfi_cmd_work_data),
+			GFP_KERNEL);
 	if (!icp_hw_mgr.cmd_work_data)
 		goto cmd_work_data_failed;
 
 	icp_hw_mgr.msg_work_data = (struct hfi_msg_work_data *)
-		kzalloc(sizeof(struct hfi_msg_work_data) * ICP_WORKQ_NUM_TASK,
-		GFP_KERNEL);
+		kcalloc(ICP_WORKQ_NUM_TASK, sizeof(struct hfi_msg_work_data),
+			GFP_KERNEL);
 	if (!icp_hw_mgr.msg_work_data)
 		goto msg_work_data_failed;
 
 	icp_hw_mgr.timer_work_data = (struct hfi_msg_work_data *)
-		kzalloc(sizeof(struct hfi_msg_work_data) * ICP_WORKQ_NUM_TASK,
-		GFP_KERNEL);
+		kcalloc(ICP_WORKQ_NUM_TASK, sizeof(struct hfi_msg_work_data),
+			GFP_KERNEL);
 	if (!icp_hw_mgr.timer_work_data)
 		goto timer_work_data_failed;
 

@@ -186,8 +186,10 @@ struct chcr_authenc_ctx {
 };
 
 struct __aead_ctx {
-	struct chcr_gcm_ctx gcm[0];
-	struct chcr_authenc_ctx authenc[0];
+	union {
+		DECLARE_FLEX_ARRAY(struct chcr_gcm_ctx, gcm);
+		DECLARE_FLEX_ARRAY(struct chcr_authenc_ctx, authenc);
+	};
 };
 
 
@@ -201,7 +203,7 @@ struct chcr_aead_ctx {
 	u8 key[CHCR_AES_MAX_KEY_LEN];
 	u16 hmac_ctrl;
 	u16 mayverify;
-	struct	__aead_ctx ctx[0];
+	struct	__aead_ctx ctx[];
 };
 
 
@@ -213,9 +215,11 @@ struct hmac_ctx {
 };
 
 struct __crypto_ctx {
-	struct hmac_ctx hmacctx[0];
-	struct ablk_ctx ablkctx[0];
-	struct chcr_aead_ctx aeadctx[0];
+	union {
+		DECLARE_FLEX_ARRAY(struct hmac_ctx, hmacctx);
+		DECLARE_FLEX_ARRAY(struct ablk_ctx, ablkctx);
+		DECLARE_FLEX_ARRAY(struct chcr_aead_ctx, aeadctx);
+	};
 };
 
 struct chcr_context {
@@ -224,7 +228,7 @@ struct chcr_context {
 	unsigned char rx_qidx;
 	unsigned char tx_chan_id;
 	unsigned char pci_chan_id;
-	struct __crypto_ctx crypto_ctx[0];
+	struct __crypto_ctx crypto_ctx[];
 };
 
 struct chcr_ahash_req_ctx {

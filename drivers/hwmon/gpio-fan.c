@@ -422,6 +422,9 @@ static int gpio_fan_set_cur_state(struct thermal_cooling_device *cdev,
 	if (!fan_data)
 		return -EINVAL;
 
+	if (state >= fan_data->num_speed)
+		return -EINVAL;
+
 	set_fan_speed(fan_data, state);
 	return 0;
 }
@@ -477,7 +480,7 @@ static int gpio_fan_get_of_pdata(struct device *dev,
 		dev_err(dev, "DT properties empty / missing");
 		return -ENODEV;
 	}
-	ctrl = devm_kzalloc(dev, pdata->num_ctrl * sizeof(unsigned),
+	ctrl = devm_kcalloc(dev, pdata->num_ctrl, sizeof(unsigned),
 				GFP_KERNEL);
 	if (!ctrl)
 		return -ENOMEM;
@@ -509,8 +512,8 @@ static int gpio_fan_get_of_pdata(struct device *dev,
 	 * Speed map is in the form <RPM ctrl_val RPM ctrl_val ...>
 	 * this needs splitting into pairs to create gpio_fan_speed structs
 	 */
-	speed = devm_kzalloc(dev,
-			pdata->num_speed * sizeof(struct gpio_fan_speed),
+	speed = devm_kcalloc(dev,
+			pdata->num_speed, sizeof(struct gpio_fan_speed),
 			GFP_KERNEL);
 	if (!speed)
 		return -ENOMEM;

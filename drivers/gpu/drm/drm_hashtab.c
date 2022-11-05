@@ -47,7 +47,7 @@ int drm_ht_create(struct drm_open_hash *ht, unsigned int order)
 	if (size <= PAGE_SIZE / sizeof(*ht->table))
 		ht->table = kcalloc(size, sizeof(*ht->table), GFP_KERNEL);
 	else
-		ht->table = vzalloc(size*sizeof(*ht->table));
+		ht->table = vzalloc(array_size(size, sizeof(*ht->table)));
 	if (!ht->table) {
 		DRM_ERROR("Out of memory for hash table\n");
 		return -ENOMEM;
@@ -61,7 +61,7 @@ void drm_ht_verbose_list(struct drm_open_hash *ht, unsigned long key)
 	struct drm_hash_item *entry;
 	struct hlist_head *h_list;
 	unsigned int hashed_key;
-	int count = 0;
+	__maybe_unused int count = 0;
 
 	hashed_key = hash_long(key, ht->order);
 	DRM_DEBUG("Key is 0x%08lx, Hashed key is 0x%08x\n", key, hashed_key);

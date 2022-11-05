@@ -299,6 +299,10 @@ static int devfreq_memlat_get_freq(struct devfreq *df,
 					hw->core_stats[i].freq,
 					hw->core_stats[i].stall_pct, ratio);
 
+		if (!hw->core_stats[i].inst_count
+		    || !hw->core_stats[i].freq)
+			continue;
+
 		if (ratio <= node->ratio_ceil
 		    && hw->core_stats[i].stall_pct >= node->stall_floor
 		    && hw->core_stats[i].freq > max_freq) {
@@ -447,8 +451,8 @@ static struct core_dev_map *init_core_dev_map(struct device *dev,
 		return NULL;
 	nf = len / NUM_COLS;
 
-	tbl = devm_kzalloc(dev, (nf + 1) * sizeof(struct core_dev_map),
-			GFP_KERNEL);
+	tbl = devm_kcalloc(dev, nf + 1, sizeof(struct core_dev_map),
+			   GFP_KERNEL);
 	if (!tbl)
 		return NULL;
 

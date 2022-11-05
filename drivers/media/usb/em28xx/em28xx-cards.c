@@ -3506,8 +3506,9 @@ static int em28xx_usb_probe(struct usb_interface *interface,
 
 	/* compute alternate max packet sizes */
 	dev->alt_max_pkt_size_isoc =
-				kmalloc(sizeof(dev->alt_max_pkt_size_isoc[0]) *
-					interface->num_altsetting, GFP_KERNEL);
+				kmalloc_array(interface->num_altsetting,
+					      sizeof(dev->alt_max_pkt_size_isoc[0]),
+					      GFP_KERNEL);
 	if (dev->alt_max_pkt_size_isoc == NULL) {
 		kfree(dev);
 		retval = -ENOMEM;
@@ -3644,6 +3645,8 @@ static int em28xx_usb_probe(struct usb_interface *interface,
 		goto err_free;
 	}
 
+	kref_init(&dev->ref);
+
 	dev->devno = nr;
 	dev->model = id->driver_info;
 	dev->alt   = -1;
@@ -3729,8 +3732,6 @@ static int em28xx_usb_probe(struct usb_interface *interface,
 		dev_err(&interface->dev, "dvb set to %s mode.\n",
 			dev->dvb_xfer_bulk ? "bulk" : "isoc");
 	}
-
-	kref_init(&dev->ref);
 
 	request_modules(dev);
 
