@@ -9,7 +9,7 @@ restore='\033[0m'
 clear
 
 # Resources
-export CLANG_PATH=/home/mihau/mykernel/azure-clang-main/bin
+export CLANG_PATH=~/pixelos/prebuilts/clang/host/linux-x86/clang-azure/bin
 export PATH=${CLANG_PATH}:${PATH}
 export CROSS_COMPILE=${CLANG_PATH}/aarch64-linux-gnu-
 export CROSS_COMPILE_ARM32=${CLANG_PATH}/arm-linux-gnueabi-
@@ -20,8 +20,8 @@ VER=""
 
 # Paths
 KERNEL_DIR=`pwd`
-REPACK_DIR=/home/mihau/mykernel/AnyKernel3
-ZIP_MOVE=/home/mihau/mykernel
+REPACK_DIR=~/anykernel
+ZIP_MOVE=~/TREES
 
 # Functions
 function clean_all {
@@ -33,8 +33,8 @@ function clean_all {
 
 function make_kernel {
 		echo
-		make CC=clang AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip $DEFCONFIG
-		make CC=clang AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip -j$(grep -c ^processor /proc/cpuinfo)
+		make LLVM=1 LLVM_IAS=1 $DEFCONFIG
+		make LLVM=1 LLVM_IAS=1 -j$(grep -c ^processor /proc/cpuinfo)
 
 }
 
