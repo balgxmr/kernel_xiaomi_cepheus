@@ -719,7 +719,16 @@ int dsi_panel_set_doze_mode(struct dsi_panel *panel, enum dsi_doze_mode_type mod
 		return 0;
 
 	return dsi_panel_update_doze(panel);
-}
+
+u8 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel)
+{
+	u8 alpha;
+
+	mutex_lock(&panel->panel_lock);
+	alpha = panel->fod_dim_alpha;
+	mutex_unlock(&panel->panel_lock);
+
+	return alpha;
 
 int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 {
