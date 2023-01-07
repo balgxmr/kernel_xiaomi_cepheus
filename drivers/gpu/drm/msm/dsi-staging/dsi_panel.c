@@ -720,6 +720,7 @@ int dsi_panel_set_doze_mode(struct dsi_panel *panel, enum dsi_doze_mode_type mod
 		return 0;
 
 	return dsi_panel_update_doze(panel);
+}
 
 u8 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel)
 {
@@ -730,6 +731,7 @@ u8 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel)
 	mutex_unlock(&panel->panel_lock);
 
 	return alpha;
+}
 
 static u32 interpolate(uint32_t x, uint32_t xa, uint32_t xb,
 		       uint32_t ya, uint32_t yb)
