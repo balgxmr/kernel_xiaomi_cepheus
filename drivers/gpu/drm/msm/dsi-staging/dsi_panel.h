@@ -243,12 +243,16 @@ struct dsi_panel {
 	bool resend_ea_hbm;
 
 	struct brightness_alpha_pair *fod_dim_lut;
+	struct brightness_alpha_pair *dc_dim_lut;
 	unsigned int fod_dim_lut_len;
+	unsigned int dc_dim_lut_len;
 	u8 fod_dim_alpha;
+	u8 dc_dim_alpha;
 	bool fod_hbm_enabled;
 	bool fod_ui;
 	bool force_fod_ui;
 	bool force_fod_dim_alpha;
+	bool dc_dim;
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
@@ -373,6 +377,7 @@ int dsi_panel_set_doze_status(struct dsi_panel *panel, bool status);
 int dsi_panel_set_doze_mode(struct dsi_panel *panel, enum dsi_doze_mode_type mode);
 
 u8 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel);
+u8 dsi_panel_get_dc_dim_alpha(struct dsi_panel *panel);
 
 int dsi_panel_apply_hbm_mode(struct dsi_panel *panel);
 
@@ -383,5 +388,6 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status);
 bool dsi_panel_get_fod_ui(struct dsi_panel *panel);
 void dsi_panel_set_fod_ui(struct dsi_panel *panel, bool status);
 bool dsi_panel_get_force_fod_ui(struct dsi_panel *panel);
+bool dsi_panel_get_dc_dim(struct dsi_panel *panel);
 
 #endif /* _DSI_PANEL_H_ */
