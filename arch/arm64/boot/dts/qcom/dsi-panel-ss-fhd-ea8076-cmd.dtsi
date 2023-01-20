@@ -92,7 +92,7 @@
 			2047	0x21
 		>;
 		
-		qcom,dc-dim-lut = <
+		qcom,disp-dc-dim-lut = <
 			/* brightness, alpha */
 			0	0xFF
 			1	0xE0
