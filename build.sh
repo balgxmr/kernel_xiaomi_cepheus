@@ -76,48 +76,18 @@ export KBUILD_BUILD_HOST=Mihau
 
 echo
 
-while read -p "Do you want to clean stuffs (y/n)? " cchoice
-do
-case "$cchoice" in
-	y|Y )
-		clean_all
-		echo
-		echo "All Cleaned now."
-		break
-		;;
-	n|N )
-		break
-		;;
-	* )
-		echo
-		echo "Invalid try again!"
-		echo
-		;;
-esac
-done
-
+echo Starting cleaning...
+echo
+clean_all
+echo
+echo All cleaned.
+echo
+echo Building kernel...
 echo
 
-while read -p "Do you want to build? (y/n)" dchoice
-do
-case "$dchoice" in
-	y|Y )
-		make_kernel
-		make_boot
-                make_zip
-		break
-		;;
-	n|N )
-		break
-		;;
-	* )
-		echo
-		echo "Invalid try again!"
-		echo
-		;;
-esac
-done
-
+make_kernel
+make_boot
+make_zip
 
 echo -e "${green}"
 echo "-------------------"
