@@ -71,8 +71,8 @@ ZIP_NAME="$AK_VER"-"$DATE"
 #export LOCALVERSION=~`echo $AK_VER`
 export ARCH=arm64
 export SUBARCH=arm64
-export KBUILD_BUILD_USER=Mihau
-export KBUILD_BUILD_HOST=Mihau
+export KBUILD_BUILD_USER=balgxmr
+export KBUILD_BUILD_HOST=balgxmr
 
 echo
 
