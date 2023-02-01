@@ -56,9 +56,7 @@ DATE_START=$(date +"%s")
 
 
 echo -e "${green}"
-echo "-----------------"
 echo "Making Kernel:"
-echo "-----------------"
 echo -e "${restore}"
 
 
@@ -75,7 +73,6 @@ export KBUILD_BUILD_USER=balgxmr
 export KBUILD_BUILD_HOST=balgxmr
 
 echo
-
 echo Starting cleaning...
 echo
 clean_all
@@ -89,13 +86,11 @@ make_kernel
 make_boot
 make_zip
 
-echo -e "${green}"
-echo "-------------------"
-echo "Build Completed in:"
-echo "-------------------"
-echo -e "${restore}"
-
 DATE_END=$(date +"%s")
 DIFF=$(($DATE_END - $DATE_START))
-echo "Time: $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds."
+
+echo
+echo -e "${green}"
+echo "### build completed in ($(($DIFF / 60)):$(($DIFF % 60)) (mm:ss))."
+echo -e "${restore}"
 echo
