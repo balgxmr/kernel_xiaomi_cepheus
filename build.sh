@@ -91,6 +91,7 @@ DIFF=$(($DATE_END - $DATE_START))
 
 echo
 echo -e "${green}"
+find $ZIP_MOVE -type f -printf "%p\n" | sort -n | tail -1
 echo "### build completed in ($(($DIFF / 60)):$(($DIFF % 60)) (mm:ss))."
 echo -e "${restore}"
 echo
