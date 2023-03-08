@@ -177,8 +177,6 @@ void release_all_touches(struct fts_ts_info *info)
 	info->touch_id = 0;
 	info->touch_skip = 0;
 	info->fod_id = 0;
-	info->fod_x = 0;
-	info->fod_y = 0;
 #ifdef STYLUS_MODE
 	info->stylus_id = 0;
 #endif
@@ -2672,13 +2670,6 @@ static ssize_t fts_fod_test_store(struct device *dev,
 	}
 	return count;
 }
-
-static ssize_t fts_fod_state_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-        struct fts_ts_info *info = dev_get_drvdata(dev);
-
-        return snprintf(buf, TSP_BUF_SIZE, "%d,%d,%d\n", info->fod_x, info->fod_y, info->fod_pressed);
-}
 #endif
 
 #ifdef CONFIG_SECURE_TOUCH
@@ -3036,8 +3027,6 @@ static DEVICE_ATTR(fod_status, (S_IRUGO | S_IWUSR | S_IWGRP),
 		   fts_fod_status_show, fts_fod_status_store);
 
 static DEVICE_ATTR(fod_test, (S_IRUGO | S_IWUSR | S_IWGRP), NULL, fts_fod_test_store);
-
-static DEVICE_ATTR(fod_state, (S_IRUGO | S_IWUSR | S_IWGRP), fts_fod_state_show, NULL);
 #endif
 
 #ifdef CONFIG_SECURE_TOUCH
@@ -3208,8 +3197,6 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info,
 			input_report_abs(info->input_dev, ABS_MT_WIDTH_MINOR, 0);
 			input_report_key(info->input_dev, BTN_INFO, 0);
 			input_report_key(info->input_dev, KEY_INFO, 0);
-			info->fod_x = 0;
-			info->fod_y = 0;
 			info->fod_coordinate_update = false;
 			info->fod_overlap = 0;
 			logError(1, "%s  %s :  FOD Release :%d\n", tag, __func__,
@@ -3318,8 +3305,6 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info,
 			input_report_key(info->input_dev, BTN_INFO, 0);
 			input_report_key(info->input_dev, KEY_INFO, 0);
 			info->fod_coordinate_update = false;
-			info->fod_x = 0;
-			info->fod_y = 0;
 	}
 #endif
 	input_mt_report_slot_state(info->input_dev, tool, 0);
@@ -3329,9 +3314,6 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info,
 			input_report_key(info->input_dev, BTN_TOOL_FINGER, 0);
 #ifdef CONFIG_FTS_FOD_AREA_REPORT
 		info->fod_pressed = false;
-		info->fod_x = 0;
-		info->fod_y = 0;
-		sysfs_notify(&info->fts_touch_dev->kobj, NULL, dev_attr_fod_state.attr.name);
 		info->fod_overlap = 0;
 		input_report_key(info->input_dev, BTN_INFO, 0);
 		input_report_key(info->input_dev, KEY_INFO, 0);
@@ -3688,9 +3670,6 @@ static void fts_gesture_event_handler(struct fts_ts_info *info,
 
 				if ((info->sensor_sleep && !info->sleep_finger) || !info->sensor_sleep) {
 					info->fod_pressed = true;
-					info->fod_x = x;
-					info->fod_y = y;
-					sysfs_notify(&info->fts_touch_dev->kobj, NULL, dev_attr_fod_state.attr.name);
 					input_report_key(info->input_dev, BTN_INFO, 1);
 					input_report_key(info->input_dev, KEY_INFO, 1);
 					input_sync(info->input_dev);
@@ -6339,9 +6318,6 @@ static int fts_probe(struct spi_device *client)
 	if (error) {
 		logError(1, "%s ERROR: Failed to create fod_status sysfs group!\n", tag);
 	}
-	error = sysfs_create_file(&info->fts_touch_dev->kobj, &dev_attr_fod_state.attr);
-	if (error)
-		logError(1, "%s ERROR: Failed to create fod_state sysfs group!\n", tag);
 	error =
 	    sysfs_create_file(&info->fts_touch_dev->kobj,
 			      &dev_attr_fod_test.attr);
