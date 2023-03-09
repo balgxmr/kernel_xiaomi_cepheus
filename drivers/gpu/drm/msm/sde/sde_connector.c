@@ -600,6 +600,7 @@ bool last_dimlayer_bl_enabled;
 bool last_dimlayer_status;
 void sde_connector_update_hbm(struct drm_connector *connector)
 {
+	static atomic_t effective_status = ATOMIC_INIT(false);
 	struct sde_crtc_state *cstate;
 	struct sde_connector *c_conn;
 	struct dsi_display *display;
