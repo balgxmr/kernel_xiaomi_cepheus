@@ -5336,6 +5336,7 @@ static struct attribute *display_fs_attrs[] = {
 	&dev_attr_dimlayer_bl.attr,
 	&dev_attr_dimlayer_hbm.attr,
 	&dev_attr_fod_hbm_en.attr,
+	&dev_attr_hbm.attr,
 	NULL,
 };
 
