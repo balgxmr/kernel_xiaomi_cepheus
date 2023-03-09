@@ -238,6 +238,7 @@ struct dsi_panel {
 
 	bool doze_enabled;
 	enum dsi_doze_mode_type doze_mode;
+	int hbm_mode;
 
 	struct brightness_alpha_pair *fod_dim_lut;
 	u32 fod_dim_lut_count;
@@ -374,6 +375,8 @@ int dsi_panel_set_dimlayer_bl_backlight(struct dsi_panel *panel, bool status);
 u32 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel);
 
 u32 dsi_panel_get_bl_dim_alpha(struct dsi_panel *panel);
+
+int dsi_panel_apply_hbm_mode(struct dsi_panel *panel);
 
 void dsi_panel_calc_dsi_transfer_time(struct dsi_host_common_cfg *config,
 		struct dsi_display_mode *mode, u32 frame_threshold_us);
