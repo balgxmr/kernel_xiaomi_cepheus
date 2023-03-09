@@ -5336,7 +5336,6 @@ error:
 static void sde_crtc_fod_atomic_check(struct sde_crtc_state *cstate,
 		struct plane_state *pstates, int cnt)
 {
-	uint32_t dim_layer_stage;
 	int fod_layer_index = -1;
 	int plane_idx;
 	int zpos = INT_MAX;
