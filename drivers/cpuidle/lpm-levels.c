@@ -1394,7 +1394,6 @@ void update_ipi_history(int cpu)
 		history->current_ptr = 0;
 	history->cpu_idle_resched_ts = now;
 }
-EXPORT_SYMBOL(update_ipi_history);
 
 static void update_history(struct cpuidle_device *dev, int idx)
 {
