@@ -328,8 +328,6 @@ static u32 bbr_full_bw_thresh = BBR_UNIT * 5 / 4;
  */
 static u32 bbr_full_bw_cnt = 3;
 
-static u32 bbr_flags = 0;		/* Debugging related stuff */
-
 /* Experiment: each cycle, try to hold sub-unity gain until inflight <= BDP. */
 static bool bbr_drain_to_target = true;		/* default: enabled */
 
