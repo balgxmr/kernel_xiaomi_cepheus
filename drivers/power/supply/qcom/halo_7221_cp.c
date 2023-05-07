@@ -636,7 +636,7 @@ static int halo7221_probe(struct i2c_client *client, const struct i2c_device_id 
 
 	chip->regmap = regmap_init_i2c(client, &halo7221_regmap_config);
 	if (!chip->regmap) {
-		pr_err("parent regmap is missing\n");
+		pr_debug("parent regmap is missing\n");
 		return -EINVAL;
 	}
 	chip->name = DEVICE_NAME;

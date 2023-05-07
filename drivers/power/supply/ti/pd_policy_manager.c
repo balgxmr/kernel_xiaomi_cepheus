@@ -98,7 +98,7 @@ static void usbpd_check_usb_psy(struct usbpd_pm *pdpm)
 	if (!pdpm->usb_psy) {
 		pdpm->usb_psy = power_supply_get_by_name("usb");
 		if (!pdpm->usb_psy)
-			pr_err("usb psy not found!\n");
+			pr_debug("usb psy not found!\n");
 	}
 }
 
@@ -107,7 +107,7 @@ static void usbpd_check_batt_psy(struct usbpd_pm *pdpm)
 	if (!pdpm->sw_psy) {
 		pdpm->sw_psy = power_supply_get_by_name("battery");
 		if (!pdpm->sw_psy)
-			pr_err("batt psy not found!\n");
+			pr_debug("batt psy not found!\n");
 	}
 }
 
@@ -116,7 +116,7 @@ static void usbpd_check_bms_psy(struct usbpd_pm *pdpm)
 	if (!pdpm->bms_psy) {
 		pdpm->bms_psy = power_supply_get_by_name("bms");
 		if (!pdpm->bms_psy)
-			pr_err("bms psy not found!\n");
+			pr_debug("bms psy not found!\n");
 	}
 }
 
@@ -161,7 +161,7 @@ static int pd_get_batt_capacity(struct usbpd_pm *pdpm, int *capacity)
 		return rc;
 	}
 
-	pr_err("pval.intval: %d\n", pval.intval);
+	pr_debug("pval.intval: %d\n", pval.intval);
 	*capacity = pval.intval;
 	return rc;
 }
@@ -257,7 +257,7 @@ static bool pd_get_bms_digest_verified(struct usbpd_pm *pdpm)
 		return false;
 	}
 
-	pr_err("battery verify is: %d\n", pval.intval);
+	pr_debug("battery verify is: %d\n", pval.intval);
 
 	if (pval.intval == 1)
 		return true;
@@ -282,7 +282,7 @@ static bool pd_get_pps_charger_verified(struct usbpd_pm *pdpm)
 		return false;
 	}
 
-	pr_err("pval.intval: %d\n", pval.intval);
+	pr_debug("pval.intval: %d\n", pval.intval);
 
 	if (pval.intval == 1)
 		return true;
@@ -349,7 +349,7 @@ static void usbpd_check_cp_psy(struct usbpd_pm *pdpm)
 		{
 			pdpm->cp_psy = power_supply_get_by_name("ln8000");
 			if (!pdpm->cp_psy)
-				pr_err("cp_psy not found\n");
+				pr_debug("cp_psy not found\n");
 		}
 	}
 }
@@ -359,7 +359,7 @@ static void usbpd_check_cp_sec_psy(struct usbpd_pm *pdpm)
 	if (!pdpm->cp_sec_psy) {
 		pdpm->cp_sec_psy = power_supply_get_by_name("bq2597x-slave");
 		if (!pdpm->cp_sec_psy)
-			pr_err("cp_sec_psy not found\n");
+			pr_debug("cp_sec_psy not found\n");
 	}
 }
 
@@ -692,14 +692,14 @@ static void usbpd_pm_evaluate_src_caps(struct usbpd_pm *pdpm)
 	if (!pdpm->pd) {
 		pdpm->pd = smb_get_usbpd();
 		if (!pdpm->pd) {
-			pr_err("couldn't get usbpd device\n");
+			pr_debug("couldn't get usbpd device\n");
 			return;
 		}
 	}
 
 	ret = usbpd_fetch_pdo(pdpm->pd, pdpm->pdo);
 	if (ret) {
-		pr_err("Failed to fetch pdo info\n");
+		pr_debug("Failed to fetch pdo info\n");
 		return;
 	}
 
@@ -803,7 +803,7 @@ static int usbpd_pm_fc2_charge_algo(struct usbpd_pm *pdpm)
 			ibus_limit = curr_ibus_limit - 100;
 			effective_fcc_taper = usbpd_get_effective_fcc_val(pdpm);
 			effective_fcc_taper -= BQ_TAPER_DECREASE_STEP_MA;
-			pr_err("bq set taper fcc to: %d mA\n", effective_fcc_taper);
+			pr_debug("bq set taper fcc to: %d mA\n", effective_fcc_taper);
 			if (pdpm->fcc_votable)
 				vote(pdpm->fcc_votable, BQ_TAPER_FCC_VOTER,
 					true, effective_fcc_taper * 1000);
@@ -1314,7 +1314,7 @@ static void usb_psy_change_work(struct work_struct *work)
 	ret = power_supply_get_property(pdpm->usb_psy,
 			POWER_SUPPLY_PROP_TYPEC_POWER_ROLE, &val);
 	if (ret) {
-		pr_err("Failed to read typec power role\n");
+		pr_debug("Failed to read typec power role\n");
 		goto out;
 	}
 
@@ -1325,14 +1325,14 @@ static void usb_psy_change_work(struct work_struct *work)
 	ret = power_supply_get_property(pdpm->usb_psy,
 			POWER_SUPPLY_PROP_PD_ACTIVE, &val);
 	if (ret) {
-		pr_err("Failed to get usb pd active state\n");
+		pr_debug("Failed to get usb pd active state\n");
 		goto out;
 	}
 
 	ret = power_supply_get_property(pdpm->usb_psy,
 			POWER_SUPPLY_PROP_PD_AUTHENTICATION, &pd_auth_val);
 	if (ret) {
-		pr_err("Failed to read typec power role\n");
+		pr_debug("Failed to read typec power role\n");
 		goto out;
 	}
 
@@ -1385,14 +1385,14 @@ static int pd_policy_parse_dt(struct usbpd_pm *pdpm)
 	int rc = 0;
 
 	if (!node) {
-		pr_err("device tree node missing\n");
+		pr_debug("device tree node missing\n");
 		return -EINVAL;
 	}
 
 	rc = of_property_read_u32(node,
 			"mi,pd-bat-volt-max", &pdpm->bat_volt_max);
 	if (rc < 0)
-		pr_err("pd-bat-volt-max property missing, use default val\n");
+		pr_debug("pd-bat-volt-max property missing, use default val\n");
 	else
 		pm_config.bat_volt_lp_lmt = pdpm->bat_volt_max;
 	pr_info("pm_config.bat_volt_lp_lmt:%d\n", pm_config.bat_volt_lp_lmt);
@@ -1400,7 +1400,7 @@ static int pd_policy_parse_dt(struct usbpd_pm *pdpm)
 	rc = of_property_read_u32(node,
 			"mi,pd-bat-curr-max", &pdpm->bat_curr_max);
 	if (rc < 0)
-		pr_err("pd-bat-curr-max property missing, use default val\n");
+		pr_debug("pd-bat-curr-max property missing, use default val\n");
 	else
 		pm_config.bat_curr_lp_lmt = pdpm->bat_curr_max;
 	pr_info("pm_config.bat_curr_lp_lmt:%d\n", pm_config.bat_curr_lp_lmt);
@@ -1408,7 +1408,7 @@ static int pd_policy_parse_dt(struct usbpd_pm *pdpm)
 	rc = of_property_read_u32(node,
 			"mi,pd-bus-volt-max", &pdpm->bus_volt_max);
 	if (rc < 0)
-		pr_err("pd-bus-volt-max property missing, use default val\n");
+		pr_debug("pd-bus-volt-max property missing, use default val\n");
 	else
 		pm_config.bus_volt_lp_lmt = pdpm->bus_volt_max;
 	pr_info("pm_config.bus_volt_lp_lmt:%d\n", pm_config.bus_volt_lp_lmt);
@@ -1416,7 +1416,7 @@ static int pd_policy_parse_dt(struct usbpd_pm *pdpm)
 	rc = of_property_read_u32(node,
 			"mi,pd-bus-curr-max", &pdpm->bus_curr_max);
 	if (rc < 0)
-		pr_err("pd-bus-curr-max property missing, use default val\n");
+		pr_debug("pd-bus-curr-max property missing, use default val\n");
 	else
 		pm_config.bus_curr_lp_lmt = pdpm->bus_curr_max;
 	pr_info("pm_config.bus_curr_lp_lmt:%d\n", pm_config.bus_curr_lp_lmt);
@@ -1424,7 +1424,7 @@ static int pd_policy_parse_dt(struct usbpd_pm *pdpm)
 	rc = of_property_read_u32(node,
 			"mi,pd-bus-curr-compensate", &pdpm->bus_curr_compensate);
 	if (rc < 0)
-		pr_err("pd-bus-curr-compensate property missing, use default val\n");
+		pr_debug("pd-bus-curr-compensate property missing, use default val\n");
 	else
 		pm_config.bus_curr_compensate = pdpm->bus_curr_compensate;
 	pr_info("pm_config.bus_curr_compensate:%d\n", pm_config.bus_curr_compensate);
@@ -1459,7 +1459,7 @@ static int usbpd_pm_probe(struct platform_device *pdev)
 
 	ret = pd_policy_parse_dt(pdpm);
 	if (ret < 0) {
-		pr_err("Couldn't parse device tree rc=%d\n", ret);
+		pr_debug("Couldn't parse device tree rc=%d\n", ret);
 		return ret;
 	}
 
