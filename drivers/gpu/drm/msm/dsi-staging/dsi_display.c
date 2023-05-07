@@ -5065,7 +5065,7 @@ static ssize_t sysfs_doze_status_read(struct device *dev,
 
 	display = dev_get_drvdata(dev);
 	if (!display) {
-		pr_err("Invalid display\n");
+		pr_debug("Invalid display\n");
 		return -EINVAL;
 	}
 
@@ -5088,13 +5088,13 @@ static ssize_t sysfs_doze_status_write(struct device *dev,
 
 	display = dev_get_drvdata(dev);
 	if (!display) {
-		pr_err("Invalid display\n");
+		pr_debug("Invalid display\n");
 		return -EINVAL;
 	}
 
 	rc = kstrtobool(buf, &status);
 	if (rc) {
-		pr_err("%s: kstrtobool failed. rc=%d\n", __func__, rc);
+		pr_debug("%s: kstrtobool failed. rc=%d\n", __func__, rc);
 		return rc;
 	}
 
@@ -5116,7 +5116,7 @@ static ssize_t sysfs_doze_mode_read(struct device *dev,
 
 	display = dev_get_drvdata(dev);
 	if (!display) {
-		pr_err("Invalid display\n");
+		pr_debug("Invalid display\n");
 		return -EINVAL;
 	}
 
@@ -5139,18 +5139,18 @@ static ssize_t sysfs_doze_mode_write(struct device *dev,
 
 	display = dev_get_drvdata(dev);
 	if (!display) {
-		pr_err("Invalid display\n");
+		pr_debug("Invalid display\n");
 		return -EINVAL;
 	}
 
 	rc = kstrtoint(buf, 10, &mode);
 	if (rc) {
-		pr_err("%s: kstrtoint failed. rc=%d\n", __func__, rc);
+		pr_debug("%s: kstrtoint failed. rc=%d\n", __func__, rc);
 		return rc;
 	}
 
 	if (mode < DSI_DOZE_LPM || mode > DSI_DOZE_HBM) {
-		pr_err("%s: invalid value for doze mode\n", __func__);
+		pr_debug("%s: invalid value for doze mode\n", __func__);
 		return -EINVAL;
 	}
 
