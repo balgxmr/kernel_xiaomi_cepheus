@@ -741,7 +741,7 @@ int dsi_panel_update_doze(struct dsi_panel *panel) {
 	}
 
 	if (rc)
-		pr_err("[%s] failed to send DOZE, rc=%d\n", panel->name, rc);
+		pr_debug("[%s] failed to send DOZE, rc=%d\n", panel->name, rc);
 	return rc;
 }
 
@@ -4299,7 +4299,7 @@ int dsi_panel_set_lp1(struct dsi_panel *panel)
 
 	rc = dsi_panel_set_doze_status(panel, true);
 	if (rc)
-		pr_err("unable to set doze on\n");
+		pr_debug("unable to set doze on\n");
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -4325,7 +4325,7 @@ int dsi_panel_set_lp2(struct dsi_panel *panel)
 
 	rc = dsi_panel_set_doze_status(panel, true);
 	if (rc)
-		pr_err("unable to set doze on\n");
+		pr_debug("unable to set doze on\n");
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -4359,7 +4359,7 @@ int dsi_panel_set_nolp(struct dsi_panel *panel)
 
 	rc = dsi_panel_set_doze_status(panel, false);
 	if (rc)
-		pr_err("unable to set doze on\n");
+		pr_debug("unable to set doze on\n");
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
