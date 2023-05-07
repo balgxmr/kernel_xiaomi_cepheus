@@ -2170,7 +2170,7 @@ static int smb5_init_wireless_psy(struct smb5 *chip)
 						  &wireless_psy_desc,
 						  &wireless_cfg);
 	if (IS_ERR(chg->wireless_psy)) {
-		pr_err("Couldn't register wireless power supply\n");
+		pr_debug("Couldn't register wireless power supply\n");
 		return PTR_ERR(chg->wireless_psy);
 	}
 
@@ -4423,7 +4423,7 @@ static int smb5_probe(struct platform_device *pdev)
 	if (chg->support_wireless) {
 		rc = smb5_init_wireless_psy(chip);
 		if (rc < 0) {
-			pr_err("Couldn't initialize wireless psy rc=%d\n", rc);
+			pr_debug("Couldn't initialize wireless psy rc=%d\n", rc);
 			goto cleanup;
 		}
 	}

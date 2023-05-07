@@ -5552,7 +5552,7 @@ idtp922x_set_pmi_icl(di, SCREEN_OFF_FUL_CURRENT);
 }
 }
 } else {
-pr_err("%s: Couldn't get DRM event\n", __func__);
+pr_debug("%s: Couldn't get DRM event\n", __func__);
 mutex_unlock(&di->screen_lock);
 return 0;
 }

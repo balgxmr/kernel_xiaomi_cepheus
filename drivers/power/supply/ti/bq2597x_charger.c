@@ -1626,7 +1626,7 @@ static int bq2597x_set_bus_protection(struct bq2597x *bq, int hvdcp3_type)
 	/* just return now, to do later */
 	//return 0;
 
-	pr_err("hvdcp3_type: %d\n", hvdcp3_type);
+	pr_debug("hvdcp3_type: %d\n", hvdcp3_type);
 	if (hvdcp3_type == HVDCP3_CLASSA_18W) {
 		bq2597x_set_busovp_th(bq, BUS_OVP_FOR_QC);
 		bq2597x_set_busovp_alarm_th(bq, BUS_OVP_ALARM_FOR_QC);
@@ -2400,7 +2400,7 @@ static int bq2597x_suspend_noirq(struct device *dev)
 	struct bq2597x *bq = i2c_get_clientdata(client);
 
 	if (bq->irq_waiting) {
-		pr_err_ratelimited("Aborting suspend, an interrupt was detected while suspending\n");
+		pr_debug_ratelimited("Aborting suspend, an interrupt was detected while suspending\n");
 		return -EBUSY;
 	}
 	return 0;

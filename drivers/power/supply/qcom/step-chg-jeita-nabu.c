@@ -164,7 +164,7 @@ static bool is_input_present(struct step_chg_info *chip)
 		rc = power_supply_get_property(chip->usb_psy,
 				POWER_SUPPLY_PROP_PRESENT, &pval);
 		if (rc < 0)
-			pr_err("Couldn't read USB Present status, rc=%d\n", rc);
+			pr_debug("Couldn't read USB Present status, rc=%d\n", rc);
 		else
 			input_present |= pval.intval;
 	}
@@ -175,7 +175,7 @@ static bool is_input_present(struct step_chg_info *chip)
 		rc = power_supply_get_property(chip->dc_psy,
 				POWER_SUPPLY_PROP_PRESENT, &pval);
 		if (rc < 0)
-			pr_err("Couldn't read DC Present status, rc=%d\n", rc);
+			pr_debug("Couldn't read DC Present status, rc=%d\n", rc);
 		else
 			input_present |= pval.intval;
 	}
@@ -193,27 +193,27 @@ int read_range_data_from_node(struct device_node *node,
 	int rc = 0, i, length, per_tuple_length, tuples;
 
 	if (!node || !prop_str || !ranges) {
-		pr_err("Invalid parameters passed\n");
+		pr_debug("Invalid parameters passed\n");
 		return -EINVAL;
 	}
 
 	rc = of_property_count_elems_of_size(node, prop_str, sizeof(u32));
 	if (rc < 0) {
-		pr_err("Count %s failed, rc=%d\n", prop_str, rc);
+		pr_debug("Count %s failed, rc=%d\n", prop_str, rc);
 		return rc;
 	}
 
 	length = rc;
 	per_tuple_length = sizeof(struct range_data) / sizeof(u32);
 	if (length % per_tuple_length) {
-		pr_err("%s length (%d) should be multiple of %d\n",
+		pr_debug("%s length (%d) should be multiple of %d\n",
 				prop_str, length, per_tuple_length);
 		return -EINVAL;
 	}
 	tuples = length / per_tuple_length;
 
 	if (tuples > MAX_STEP_CHG_ENTRIES) {
-		pr_err("too many entries(%d), only %d allowed\n",
+		pr_debug("too many entries(%d), only %d allowed\n",
 				tuples, MAX_STEP_CHG_ENTRIES);
 		return -EINVAL;
 	}
@@ -221,14 +221,14 @@ int read_range_data_from_node(struct device_node *node,
 	rc = of_property_read_u32_array(node, prop_str,
 			(u32 *)ranges, length);
 	if (rc) {
-		pr_err("Read %s failed, rc=%d", prop_str, rc);
+		pr_debug("Read %s failed, rc=%d", prop_str, rc);
 		return rc;
 	}
 
 	for (i = 0; i < tuples; i++) {
 		if (ranges[i].low_threshold >
 				ranges[i].high_threshold) {
-			pr_err("%s thresholds should be in ascendant ranges\n",
+			pr_debug("%s thresholds should be in ascendant ranges\n",
 						prop_str);
 			rc = -EINVAL;
 			goto clean;
@@ -237,7 +237,7 @@ int read_range_data_from_node(struct device_node *node,
 		if (i != 0) {
 			if (ranges[i - 1].high_threshold >
 					ranges[i].low_threshold) {
-				pr_err("%s thresholds should be in ascendant ranges\n",
+				pr_debug("%s thresholds should be in ascendant ranges\n",
 							prop_str);
 				rc = -EINVAL;
 				goto clean;
@@ -277,7 +277,7 @@ static int get_step_chg_jeita_setting_from_profile(struct step_chg_info *chip)
 
 	batt_node = of_find_node_by_phandle(be32_to_cpup(handle));
 	if (!batt_node) {
-		pr_err("Get battery data node failed\n");
+		pr_debug("Get battery data node failed\n");
 		return -EINVAL;
 	}
 
@@ -298,14 +298,14 @@ static int get_step_chg_jeita_setting_from_profile(struct step_chg_info *chip)
 		return PTR_ERR(profile_node);
 
 	if (!profile_node) {
-		pr_err("Couldn't find profile\n");
+		pr_debug("Couldn't find profile\n");
 		return -ENODATA;
 	}
 
 	rc = of_property_read_string(profile_node, "qcom,battery-type",
 					&batt_type_str);
 	if (rc < 0) {
-		pr_err("battery type unavailable, rc:%d\n", rc);
+		pr_debug("battery type unavailable, rc:%d\n", rc);
 		return rc;
 	}
 	pr_info("battery: %s detected, getting sw-jeita/step charging settings\n",
@@ -314,14 +314,14 @@ static int get_step_chg_jeita_setting_from_profile(struct step_chg_info *chip)
 	rc = of_property_read_u32(profile_node, "qcom,max-voltage-uv",
 					&max_fv_uv);
 	if (rc < 0) {
-		pr_err("max-voltage_uv reading failed, rc=%d\n", rc);
+		pr_debug("max-voltage_uv reading failed, rc=%d\n", rc);
 		return rc;
 	}
 
 	rc = of_property_read_u32(profile_node, "qcom,fastchg-current-ma",
 					&max_fcc_ma);
 	if (rc < 0) {
-		pr_err("max-fastchg-current-ma reading failed, rc=%d\n", rc);
+		pr_debug("max-fastchg-current-ma reading failed, rc=%d\n", rc);
 		return rc;
 	}
 
@@ -470,7 +470,7 @@ static int get_val(struct range_data *range, int hysteresis, int current_index,
 	 * return -ENODATA.
 	 */
 	if (threshold < range[0].low_threshold) {
-		pr_err("threshold is low then %d, error!\n", range[0].low_threshold);
+		pr_debug("threshold is low then %d, error!\n", range[0].low_threshold);
 		return -ENODATA;
 	}
 
@@ -555,7 +555,7 @@ static void taper_fcc_step_chg(struct step_chg_info *chip, int index,
 	u32 current_fcc, target_fcc;
 
 	if (index < 0) {
-		pr_err("Invalid STEP CHG index\n");
+		pr_debug("Invalid STEP CHG index\n");
 		return;
 	}
 
@@ -604,7 +604,7 @@ static int handle_step_chg_config(struct step_chg_info *chip)
 	rc = power_supply_get_property(chip->usb_psy,
 			POWER_SUPPLY_PROP_PRESENT, &pval);
 	if (rc < 0) {
-		pr_err("Get battery present status failed, rc=%d\n", rc);
+		pr_debug("Get battery present status failed, rc=%d\n", rc);
 		return rc;
 	}
 	if (pval.intval && pval.intval != usb_present)
@@ -645,7 +645,7 @@ static int handle_step_chg_config(struct step_chg_info *chip)
 	}
 
 	if (rc < 0) {
-		pr_err("Couldn't read %s property rc=%d\n",
+		pr_debug("Couldn't read %s property rc=%d\n",
 			chip->step_chg_config->param.prop_name, rc);
 		return rc;
 	}
@@ -684,7 +684,7 @@ static int handle_step_chg_config(struct step_chg_info *chip)
 		vote(chip->fcc_votable, STEP_CHG_VOTER, true, fcc_ua);
 	}
 
-	pr_err("%s = %d Step-FCC = %duA taper-fcc: %d\n",
+	pr_debug("%s = %d Step-FCC = %duA taper-fcc: %d\n",
 		chip->step_chg_config->param.prop_name, pval.intval,
 		get_client_vote(chip->fcc_votable, STEP_CHG_VOTER),
 		chip->taper_fcc);
@@ -723,7 +723,7 @@ static int handle_dynamic_fv(struct step_chg_info *chip)
 	rc = power_supply_get_property(chip->bms_psy,
 			POWER_SUPPLY_PROP_CYCLE_COUNT, &pval);
 	if (rc < 0) {
-		pr_err("Couldn't read %s property rc=%d\n",
+		pr_debug("Couldn't read %s property rc=%d\n",
 				chip->dynamic_fv_config->prop_name, rc);
 		return rc;
 	}
@@ -760,7 +760,7 @@ static int handle_dynamic_fv(struct step_chg_info *chip)
 	rc = power_supply_set_property(chip->bms_psy,
 		POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE, &pval);
 	if (rc < 0) {
-		pr_err("Couldn't set CONSTANT VOLTAGE property rc=%d\n", rc);
+		pr_debug("Couldn't set CONSTANT VOLTAGE property rc=%d\n", rc);
 		return rc;
 	}
 
@@ -810,7 +810,7 @@ static int handle_jeita(struct step_chg_info *chip)
 	rc = power_supply_get_property(chip->usb_psy,
 			POWER_SUPPLY_PROP_PRESENT, &pval);
 	if (rc < 0) {
-		pr_err("Get battery present status failed, rc=%d\n", rc);
+		pr_debug("Get battery present status failed, rc=%d\n", rc);
 		return rc;
 	}
 	if (pval.intval && pval.intval != usb_present)
@@ -830,7 +830,7 @@ static int handle_jeita(struct step_chg_info *chip)
 				chip->jeita_fcc_config->param.psy_prop, &pval);
 
 	if (rc < 0) {
-		pr_err("Couldn't read %s property rc=%d\n",
+		pr_debug("Couldn't read %s property rc=%d\n",
 				chip->jeita_fcc_config->param.prop_name, rc);
 		return rc;
 	}
@@ -869,16 +869,16 @@ static int handle_jeita(struct step_chg_info *chip)
 	rc = power_supply_get_property(chip->bms_psy,
 				POWER_SUPPLY_PROP_CAPACITY, &pval);
 	if (rc < 0) {
-		pr_err("Couldn't read batt_soc fail rc=%d\n", rc);
+		pr_debug("Couldn't read batt_soc fail rc=%d\n", rc);
 		return rc;
 	}
 	batt_soc = pval.intval;
 	pr_info("%s:batt_soc=%d\n", __func__, batt_soc);
 	rc = power_supply_get_property(chip->bms_psy,
 			POWER_SUPPLY_PROP_FASTCHARGE_MODE, &pval);
-	pr_err("%s:fastcharge_mode=%d\n", __func__, pval.intval);
+	pr_debug("%s:fastcharge_mode=%d\n", __func__, pval.intval);
 	if (rc < 0) {
-		pr_err("Couldn't read fastcharge mode fail rc=%d\n", rc);
+		pr_debug("Couldn't read fastcharge mode fail rc=%d\n", rc);
 		return rc;
 	}
 	if (pval.intval) {
@@ -894,16 +894,16 @@ static int handle_jeita(struct step_chg_info *chip)
 				rc = power_supply_get_property(chip->bms_psy,
 					POWER_SUPPLY_PROP_FFC_TERMINATION_CURRENT, &pval);
 				if (rc < 0) {
-					pr_err("Couldn't read ffc_term_curr fail rc=%d\n", rc);
+					pr_debug("Couldn't read ffc_term_curr fail rc=%d\n", rc);
 					return rc;
 				}
 				rc = power_supply_set_property(chip->batt_psy,
 						POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT, &pval);
 				if (rc < 0) {
-					pr_err("Set charge_term_curr failed, rc=%d\n", rc);
+					pr_debug("Set charge_term_curr failed, rc=%d\n", rc);
 					return rc;
 				}
-				pr_err("batt_temp = %d, ffc_chg_term_current=%d\n", batt_temp, pval.intval);
+				pr_debug("batt_temp = %d, ffc_chg_term_current=%d\n", batt_temp, pval.intval);
 			}
 		}
 	}
@@ -919,7 +919,7 @@ static int handle_jeita(struct step_chg_info *chip)
 	if (!chip->usb_icl_votable)
 		goto set_jeita_fv;
 
-	pr_err("%s = %d FCC = %duA FV = %duV\n",
+	pr_debug("%s = %d FCC = %duA FV = %duV\n",
 		chip->jeita_fcc_config->param.prop_name, pval.intval, fcc_ua, fv_uv);
 
 	/* set and clear fast charge mode when soft jeita trigger and clear */
@@ -927,13 +927,13 @@ static int handle_jeita(struct step_chg_info *chip)
 		rc = power_supply_get_property(chip->usb_psy,
 				POWER_SUPPLY_PROP_PD_AUTHENTICATION, &pval);
 		if (rc < 0)
-			pr_err("Get fastcharge mode status failed, rc=%d\n", rc);
+			pr_debug("Get fastcharge mode status failed, rc=%d\n", rc);
 		pd_authen_result = pval.intval;
 
 		rc = power_supply_get_property(chip->usb_psy,
 				POWER_SUPPLY_PROP_HVDCP3_TYPE, &pval);
 		if (rc < 0)
-			pr_err("get hvdcp3_type failed, rc=%d\n", rc);
+			pr_debug("get hvdcp3_type failed, rc=%d\n", rc);
 
 		if ((pval.intval == HVDCP3_CLASS_B_27W)
 					|| (pval.intval == HVDCP3P5_CLASS_A_18W)
@@ -941,24 +941,24 @@ static int handle_jeita(struct step_chg_info *chip)
 					|| (pd_authen_result == 1)) {
 			if ((temp >= BATT_WARM_THRESHOLD || temp <= BATT_COOL_THRESHOLD)
 						&& !fast_mode_dis) {
-				pr_err("temp:%d disable fastcharge mode\n", temp);
+				pr_debug("temp:%d disable fastcharge mode\n", temp);
 				pval.intval = false;
 				rc = power_supply_set_property(chip->usb_psy,
 						POWER_SUPPLY_PROP_FASTCHARGE_MODE, &pval);
 				if (rc < 0) {
-					pr_err("Set fastcharge mode failed, rc=%d\n", rc);
+					pr_debug("Set fastcharge mode failed, rc=%d\n", rc);
 					return rc;
 				}
 				fast_mode_dis = true;
 			} else if ((temp < BATT_WARM_THRESHOLD - chip->jeita_fv_config->param.hysteresis)
 						&& (temp > BATT_COOL_THRESHOLD + chip->jeita_fv_config->param.hysteresis)
 							&& fast_mode_dis) {
-				pr_err("temp:%d enable fastcharge mode\n", temp);
+				pr_debug("temp:%d enable fastcharge mode\n", temp);
 				pval.intval = true;
 				rc = power_supply_set_property(chip->usb_psy,
 						POWER_SUPPLY_PROP_FASTCHARGE_MODE, &pval);
 				if (rc < 0) {
-					pr_err("Set fastcharge mode failed, rc=%d\n", rc);
+					pr_debug("Set fastcharge mode failed, rc=%d\n", rc);
 					return rc;
 				}
 				fast_mode_dis = false;
@@ -988,7 +988,7 @@ static int handle_jeita(struct step_chg_info *chip)
 		rc = power_supply_get_property(chip->batt_psy,
 				POWER_SUPPLY_PROP_VOLTAGE_NOW, &pval);
 		if (rc < 0) {
-			pr_err("Get battery voltage failed, rc = %d\n", rc);
+			pr_debug("Get battery voltage failed, rc = %d\n", rc);
 			goto set_jeita_fv;
 		}
 		curr_vbat_uv = pval.intval;
@@ -1004,7 +1004,7 @@ static int handle_jeita(struct step_chg_info *chip)
 			rc = power_supply_get_property(chip->batt_psy,
 					POWER_SUPPLY_PROP_CHARGE_TYPE, &pval);
 			if (rc < 0) {
-				pr_err("Get charge type failed, rc = %d\n", rc);
+				pr_debug("Get charge type failed, rc = %d\n", rc);
 				goto set_jeita_fv;
 			}
 
@@ -1044,7 +1044,7 @@ static int handle_battery_insertion(struct step_chg_info *chip)
 	rc = power_supply_get_property(chip->batt_psy,
 			POWER_SUPPLY_PROP_PRESENT, &pval);
 	if (rc < 0) {
-		pr_err("Get battery present status failed, rc=%d\n", rc);
+		pr_debug("Get battery present status failed, rc=%d\n", rc);
 		return rc;
 	}
 
@@ -1085,15 +1085,15 @@ static void status_change_work(struct work_struct *work)
 	/* skip elapsed_us debounce for handling battery temperature */
 	rc = handle_jeita(chip);
 	if (rc < 0)
-		pr_err("Couldn't handle sw jeita rc = %d\n", rc);
+		pr_debug("Couldn't handle sw jeita rc = %d\n", rc);
 
 	rc = handle_dynamic_fv(chip);
 	if (rc < 0)
-		pr_err("Couldn't handle sw dynamic fv rc = %d\n", rc);
+		pr_debug("Couldn't handle sw dynamic fv rc = %d\n", rc);
 
 	rc = handle_step_chg_config(chip);
 	if (rc < 0)
-		pr_err("Couldn't handle step rc = %d\n", rc);
+		pr_debug("Couldn't handle step rc = %d\n", rc);
 
 	/* Remove stale votes on USB removal */
 	if (is_usb_available(chip)) {
@@ -1143,7 +1143,7 @@ static int step_chg_register_notifier(struct step_chg_info *chip)
 	chip->nb.notifier_call = step_chg_notifier_call;
 	rc = power_supply_reg_notifier(&chip->nb);
 	if (rc < 0) {
-		pr_err("Couldn't register psy notifier rc = %d\n", rc);
+		pr_debug("Couldn't register psy notifier rc = %d\n", rc);
 		return rc;
 	}
 
@@ -1157,7 +1157,7 @@ int qcom_step_chg_init(struct device *dev,
 	struct step_chg_info *chip;
 
 	if (the_chip) {
-		pr_err("Already initialized\n");
+		pr_debug("Already initialized\n");
 		return -EINVAL;
 	}
 
@@ -1208,7 +1208,7 @@ int qcom_step_chg_init(struct device *dev,
 
 	rc = step_chg_register_notifier(chip);
 	if (rc < 0) {
-		pr_err("Couldn't register psy notifier rc = %d\n", rc);
+		pr_debug("Couldn't register psy notifier rc = %d\n", rc);
 		goto release_wakeup_source;
 	}
 

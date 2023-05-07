@@ -4132,7 +4132,7 @@ static void pl_enable_work(struct work_struct *work)
 
 static void vbat_sync_work(struct work_struct *work)
 {
-	pr_err("sys_sync:vbat_sync_work\n");
+	pr_debug("sys_sync:vbat_sync_work\n");
 	sys_sync();
 }
 
@@ -4267,18 +4267,18 @@ static int fg_get_cold_thermal_level(struct fg_dev *fg)
 	rc = power_supply_get_property(fg->batt_psy,
 				POWER_SUPPLY_PROP_STATUS, &pval);
 	if (rc < 0) {
-		pr_err("failed get batt staus\n");
+		pr_debug("failed get batt staus\n");
 		return -EINVAL;
 	}
 	status = pval.intval;
 
 	rc = fg_get_battery_voltage(fg, &volt);
 	if (rc < 0)
-		pr_err("failed to get voltage, rc=%d\n", rc);
+		pr_debug("failed to get voltage, rc=%d\n", rc);
 
 	rc = fg_gen4_get_battery_temp(fg, &temp);
 	if (rc < 0)
-		pr_err("Error in getting batt_temp, rc=%d\n", rc);
+		pr_debug("Error in getting batt_temp, rc=%d\n", rc);
 
 	if (status == POWER_SUPPLY_STATUS_CHARGING ||
 			!fg->batt_temp_low || volt > NORMAL_VOLTAGE_UV_THR)
@@ -4286,18 +4286,18 @@ static int fg_get_cold_thermal_level(struct fg_dev *fg)
 
 	rc = fg_get_battery_current(fg, &curr_ua);
 	if (rc < 0)
-		pr_err("failded to get battery current, rc=%d\n", rc);
+		pr_debug("failded to get battery current, rc=%d\n", rc);
 
-	pr_err("volt: %d, temp: %d, curr_ua: %d\n",
+	pr_debug("volt: %d, temp: %d, curr_ua: %d\n",
 				volt, temp, curr_ua);
 
 	for (i = 0; i < fg->cold_thermal_len; i++) {
 		if (temp > fg->cold_thermal_seq[i].temp_l &&
 				temp <= fg->cold_thermal_seq[i].temp_h &&
 				curr_ua > fg->cold_thermal_seq[i].curr_th) {
-			pr_err("cold thermal trigger status:%d, temp:%d, volt:%d\n",
+			pr_debug("cold thermal trigger status:%d, temp:%d, volt:%d\n",
 					status, temp, volt);
-			pr_err("curr_ua:%d, fg->cold_thermal_seq[i].index:%d\n", curr_ua,
+			pr_debug("curr_ua:%d, fg->cold_thermal_seq[i].index:%d\n", curr_ua,
 					fg->cold_thermal_seq[i].index);
 			return (fg->cold_thermal_seq[i].index + 1);
 		}
@@ -6250,7 +6250,7 @@ static int fg_gen4_parse_dt(struct fg_gen4_chip *chip)
 			fg->cold_thermal_len =
 				(size / sizeof(int));
 			if (fg->cold_thermal_len % 4) {
-				pr_err("invalid cold thermal seq\n");
+				pr_debug("invalid cold thermal seq\n");
 				return -EINVAL;
 			}
 			of_property_read_u32_array(node,
@@ -6259,7 +6259,7 @@ static int fg_gen4_parse_dt(struct fg_gen4_chip *chip)
 					fg->cold_thermal_len);
 			fg->cold_thermal_len = fg->cold_thermal_len / 4;
 		} else {
-			pr_err("error allocating memory for cold thermal seq\n");
+			pr_debug("error allocating memory for cold thermal seq\n");
 		}
 	}
 
@@ -6465,14 +6465,14 @@ static int fg_dynamic_set_cutoff_voltage(struct fg_dev *fg,
 	int rc;
 	u8 buf[4];
 
-	pr_err("set dynamic cutoff voltage to: %d\n", cut_off_mv);
+	pr_debug("set dynamic cutoff voltage to: %d\n", cut_off_mv);
 
 	fg_encode(fg->sp, FG_SRAM_CUTOFF_VOLT, cut_off_mv, buf);
 	rc = fg_sram_write(fg, fg->sp[FG_SRAM_CUTOFF_VOLT].addr_word,
 			fg->sp[FG_SRAM_CUTOFF_VOLT].addr_byte, buf,
 			fg->sp[FG_SRAM_CUTOFF_VOLT].len, FG_IMA_DEFAULT);
 	if (rc < 0) {
-		pr_err("Error in writing cutoff_volt, rc=%d\n", rc);
+		pr_debug("Error in writing cutoff_volt, rc=%d\n", rc);
 		return rc;
 	}
 
@@ -6495,15 +6495,15 @@ static void soc_monitor_work(struct work_struct *work)
 	// Update battery information
 	rc = fg_get_battery_current(fg, &fg->param.batt_ma);
 	if (rc < 0)
-		pr_err("failded to get battery current, rc=%d\n", rc);
+		pr_debug("failded to get battery current, rc=%d\n", rc);
 
 	rc = fg_gen4_get_prop_capacity(fg, &fg->param.batt_raw_soc);
 	if (rc < 0)
-		pr_err("failed to get battery capacity, rc=%d\n", rc);
+		pr_debug("failed to get battery capacity, rc=%d\n", rc);
 
 	rc = fg_gen4_get_battery_temp(fg, &fg->param.batt_temp);
 	if (rc < 0)
-		pr_err("failed to get battery temperature, rc=%d\n", rc);
+		pr_debug("failed to get battery temperature, rc=%d\n", rc);
 
 	if (fg->soc_reporting_ready)
 		fg_battery_soc_smooth_tracking(chip);
@@ -6517,7 +6517,7 @@ static void soc_monitor_work(struct work_struct *work)
 				&& fg->param.batt_temp <= LOW_DISCHARGE_TEMP_TRH) {
 			rc = fg_dynamic_set_cutoff_voltage(fg, LOW_TEMP_CUTOFF_VOL_MV);
 			if (rc < 0)
-				pr_err("fg_dynamic_set_cutoff_voltage set failed\n");
+				pr_debug("fg_dynamic_set_cutoff_voltage set failed\n");
 			fg->batt_temp_low = true;
 		} else if (fg->batt_temp_low && (fg->param.batt_temp
 				> LOW_DISCHARGE_TEMP_TRH + LOW_DISCHARGE_TEMP_HYS)) {

@@ -2703,7 +2703,7 @@ static int smblib_set_wdog_bark_timer(struct smb_charger *chg,
 	rc = smblib_masked_write(chg, SNARL_BARK_BITE_WD_CFG_REG,
 			BARK_WDOG_TIMEOUT_MASK, val);
 	if (rc < 0) {
-		pr_err("Couldn't configue WD config rc=%d\n", rc);
+		pr_debug("Couldn't configue WD config rc=%d\n", rc);
 		return rc;
 	}
 	return rc;
