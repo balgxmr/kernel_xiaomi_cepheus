@@ -90,7 +90,7 @@ DATE_END=$(date +"%s")
 DIFF=$(($DATE_END - $DATE_START))
 
 echo
-find $ZIP_MOVE -type f -printf "%p\n" | sort -n | tail -1
+find $ZIP_MOVE -type f -mmin -5 -mmin +0
 
 echo
 echo -e "${green}"
