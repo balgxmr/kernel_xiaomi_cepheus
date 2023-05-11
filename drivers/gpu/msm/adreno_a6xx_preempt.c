@@ -32,8 +32,7 @@ enum {
 	SET_PSEUDO_REGISTER_SAVE_REGISTER_COUNTER,
 };
 
-static void _update_wptr(struct adreno_device *adreno_dev, bool reset_timer,
-			 bool in_irq)
+static void _update_wptr(struct adreno_device *adreno_dev, bool reset_timer)
 {
 	struct adreno_ringbuffer *rb = adreno_dev->cur_rb;
 	unsigned long flags;
@@ -44,7 +43,7 @@ static void _update_wptr(struct adreno_device *adreno_dev, bool reset_timer,
 
 	spin_lock_irqsave(&rb->preempt_lock, flags);
 
-	if (!in_irq) {
+	if (in_interrupt() == 0) {
 		/*
 		 * We might have skipped updating the wptr in case we are in
 		 * dispatcher context. Do it now.
@@ -97,7 +96,7 @@ static void _update_wptr(struct adreno_device *adreno_dev, bool reset_timer,
 			gmu_core_regrmw(device, A6XX_GMU_AO_SPARE_CNTL, 2, 0);
 	}
 
-	if (!in_irq) {
+	if (in_interrupt() == 0) {
 		/* If WPTR update fails, set the fault and trigger recovery */
 		if (ret) {
 			adreno_set_gpu_fault(adreno_dev, ADRENO_GMU_FAULT);
@@ -158,7 +157,7 @@ static void _a6xx_preemption_done(struct adreno_device *adreno_dev)
 	adreno_dev->next_rb = NULL;
 
 	/* Update the wptr for the new command queue */
-	_update_wptr(adreno_dev, true, false);
+	_update_wptr(adreno_dev, true);
 
 	/* Update the dispatcher timer for the new command queue */
 	mod_timer(&adreno_dev->dispatcher.timer,
@@ -255,7 +254,7 @@ static struct adreno_ringbuffer *a6xx_next_ringbuffer(
 	return NULL;
 }
 
-void a6xx_preemption_trigger(struct adreno_device *adreno_dev, bool in_irq)
+void a6xx_preemption_trigger(struct adreno_device *adreno_dev)
 {
 	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
 	struct kgsl_iommu *iommu = KGSL_IOMMU_PRIV(device);
@@ -289,7 +288,7 @@ void a6xx_preemption_trigger(struct adreno_device *adreno_dev, bool in_irq)
 		 */
 
 		if (next != NULL) {
-			_update_wptr(adreno_dev, false, in_irq);
+			_update_wptr(adreno_dev, false);
 
 			mod_timer(&adreno_dev->dispatcher.timer,
 				adreno_dev->cur_rb->dispatch_q.expires);
@@ -481,7 +480,7 @@ void a6xx_preemption_callback(struct adreno_device *adreno_dev, int bit)
 	adreno_dev->next_rb = NULL;
 
 	/* Update the wptr if it changed while preemption was ongoing */
-	_update_wptr(adreno_dev, true, true);
+	_update_wptr(adreno_dev, true);
 
 	/* Update the dispatcher timer for the new command queue */
 	mod_timer(&adreno_dev->dispatcher.timer,
@@ -489,7 +488,7 @@ void a6xx_preemption_callback(struct adreno_device *adreno_dev, int bit)
 
 	adreno_set_preempt_state(adreno_dev, ADRENO_PREEMPT_NONE);
 
-	a6xx_preemption_trigger(adreno_dev, true);
+	a6xx_preemption_trigger(adreno_dev);
 }
 
 void a6xx_preemption_schedule(struct adreno_device *adreno_dev)
@@ -504,7 +503,7 @@ void a6xx_preemption_schedule(struct adreno_device *adreno_dev)
 	if (adreno_in_preempt_state(adreno_dev, ADRENO_PREEMPT_COMPLETE))
 		_a6xx_preemption_done(adreno_dev);
 
-	a6xx_preemption_trigger(adreno_dev, false);
+	a6xx_preemption_trigger(adreno_dev);
 
 	mutex_unlock(&device->mutex);
 }
