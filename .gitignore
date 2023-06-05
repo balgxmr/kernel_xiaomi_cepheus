@@ -133,3 +133,6 @@ Android.bp
 
 # Object directory
 out/
+
+# regen defconfig
+regen.sh
