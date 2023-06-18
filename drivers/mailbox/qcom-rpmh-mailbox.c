@@ -106,7 +106,7 @@ struct tcs_response {
 
 struct tcs_response_pool {
 	struct tcs_response resp[MAX_POOL_SIZE];
-	raw_spinlock_t lock;
+	spinlock_t lock;
 	DECLARE_BITMAP(avail, MAX_POOL_SIZE);
 };
 
@@ -120,7 +120,7 @@ struct tcs_mbox {
 	int num_tcs;
 	int ncpt; /* num cmds per tcs */
 	DECLARE_BITMAP(slots, MAX_TCS_SLOTS);
-	raw_spinlock_t tcs_lock; /* TCS type lock */
+	spinlock_t tcs_lock; /* TCS type lock */
 };
 
 /* One per MBOX controller */
@@ -137,7 +137,7 @@ struct rsc_drv {
 	int num_tcs;
 	struct tasklet_struct tasklet;
 	struct list_head response_pending;
-	raw_spinlock_t drv_lock;
+	spinlock_t drv_lock;
 	struct tcs_response_pool *resp_pool;
 	atomic_t tcs_in_use[MAX_POOL_SIZE];
 	/* Debug info */
@@ -190,7 +190,7 @@ static int tcs_response_pool_init(struct rsc_drv *drv)
 		INIT_LIST_HEAD(&pool->resp[i].list);
 	}
 
-	raw_spin_lock_init(&pool->lock);
+	spin_lock_init(&pool->lock);
 	drv->resp_pool = pool;
 
 	return 0;
@@ -205,7 +205,7 @@ static struct tcs_response *setup_response(struct rsc_drv *drv,
 	int pos;
 	unsigned long flags;
 
-	raw_spin_lock_irqsave(&pool->lock, flags);
+	spin_lock_irqsave(&pool->lock, flags);
 	pos = find_first_zero_bit(pool->avail, MAX_POOL_SIZE);
 	if (pos != MAX_POOL_SIZE) {
 		bitmap_set(pool->avail, pos, 1);
@@ -216,7 +216,7 @@ static struct tcs_response *setup_response(struct rsc_drv *drv,
 		resp->err = err;
 		resp->in_use = false;
 	}
-	raw_spin_unlock_irqrestore(&pool->lock, flags);
+	spin_unlock_irqrestore(&pool->lock, flags);
 
 	if (pos == MAX_POOL_SIZE)
 		pr_err("response pool is full\n");
@@ -229,10 +229,10 @@ static void free_response(struct tcs_response *resp)
 	struct tcs_response_pool *pool = resp->drv->resp_pool;
 	unsigned long flags;
 
-	raw_spin_lock_irqsave(&pool->lock, flags);
+	spin_lock_irqsave(&pool->lock, flags);
 	resp->err = -EINVAL;
 	bitmap_clear(pool->avail, resp->idx, 1);
-	raw_spin_unlock_irqrestore(&pool->lock, flags);
+	spin_unlock_irqrestore(&pool->lock, flags);
 }
 
 static inline struct tcs_response *get_response(struct rsc_drv *drv, u32 m,
@@ -243,7 +243,7 @@ static inline struct tcs_response *get_response(struct rsc_drv *drv, u32 m,
 	int pos = 0;
 	unsigned long flags;
 
-	raw_spin_lock_irqsave(&pool->lock, flags);
+	spin_lock_irqsave(&pool->lock, flags);
 	do {
 		pos = find_next_bit(pool->avail, MAX_POOL_SIZE, pos);
 		if (pos == MAX_POOL_SIZE)
@@ -256,7 +256,7 @@ static inline struct tcs_response *get_response(struct rsc_drv *drv, u32 m,
 		}
 		pos++;
 	} while (1);
-	raw_spin_unlock_irqrestore(&pool->lock, flags);
+	spin_unlock_irqrestore(&pool->lock, flags);
 
 	return resp;
 }
@@ -399,10 +399,10 @@ static inline void send_tcs_response(struct tcs_response *resp)
 	struct rsc_drv *drv = resp->drv;
 	unsigned long flags;
 
-	raw_spin_lock_irqsave(&drv->drv_lock, flags);
+	spin_lock_irqsave(&drv->drv_lock, flags);
 	INIT_LIST_HEAD(&resp->list);
 	list_add_tail(&resp->list, &drv->response_pending);
-	raw_spin_unlock_irqrestore(&drv->drv_lock, flags);
+	spin_unlock_irqrestore(&drv->drv_lock, flags);
 
 	tasklet_hi_schedule(&drv->tasklet);
 }
@@ -556,15 +556,15 @@ static void tcs_notify_tx_done(unsigned long data)
 	unsigned long flags;
 
 	do {
-		raw_spin_lock_irqsave(&drv->drv_lock, flags);
+		spin_lock_irqsave(&drv->drv_lock, flags);
 		if (list_empty(&drv->response_pending)) {
-			raw_spin_unlock_irqrestore(&drv->drv_lock, flags);
+			spin_unlock_irqrestore(&drv->drv_lock, flags);
 			break;
 		}
 		resp = list_first_entry(&drv->response_pending,
 					struct tcs_response, list);
 		list_del(&resp->list);
-		raw_spin_unlock_irqrestore(&drv->drv_lock, flags);
+		spin_unlock_irqrestore(&drv->drv_lock, flags);
 		respond_tx_done(resp);
 	} while (1);
 }
@@ -771,10 +771,10 @@ static int tcs_mbox_write(struct mbox_chan *chan, struct tcs_mbox_msg *msg,
 	}
 
 	/* Identify the sequential slots that we can write to */
-	raw_spin_lock_irqsave(&tcs->tcs_lock, flags);
+	spin_lock_irqsave(&tcs->tcs_lock, flags);
 	slot = find_slots(tcs, msg);
 	if (slot < 0) {
-		raw_spin_unlock_irqrestore(&tcs->tcs_lock, flags);
+		spin_unlock_irqrestore(&tcs->tcs_lock, flags);
 		if (resp)
 			free_response(resp);
 		return slot;
@@ -789,7 +789,7 @@ static int tcs_mbox_write(struct mbox_chan *chan, struct tcs_mbox_msg *msg,
 		/* Block, if we have an address from the msg in flight */
 		ret = check_for_req_inflight(drv, tcs, msg);
 		if (ret) {
-			raw_spin_unlock_irqrestore(&tcs->tcs_lock, flags);
+			spin_unlock_irqrestore(&tcs->tcs_lock, flags);
 			if (resp)
 				free_response(resp);
 			return ret;
@@ -816,7 +816,7 @@ static int tcs_mbox_write(struct mbox_chan *chan, struct tcs_mbox_msg *msg,
 	/* Write to the TCS or AMC */
 	__tcs_buffer_write(drv, d, m, n, msg, trigger);
 
-	raw_spin_unlock_irqrestore(&tcs->tcs_lock, flags);
+	spin_unlock_irqrestore(&tcs->tcs_lock, flags);
 
 	return 0;
 }
@@ -841,18 +841,18 @@ static int tcs_mbox_invalidate(struct mbox_chan *chan)
 		if (IS_ERR(tcs))
 			return PTR_ERR(tcs);
 
-		raw_spin_lock_irqsave(&tcs->tcs_lock, flags);
+		spin_lock_irqsave(&tcs->tcs_lock, flags);
 		for (i = 0; i < tcs->num_tcs; i++) {
 			m = i + tcs->tcs_offset;
 			if (!tcs_is_free(drv, m)) {
-				raw_spin_unlock_irqrestore(&tcs->tcs_lock, flags);
+				spin_unlock_irqrestore(&tcs->tcs_lock, flags);
 				return -EBUSY;
 			}
 			__tcs_buffer_invalidate(drv->reg_base, m);
 		}
 		/* Mark the TCS as free */
 		bitmap_zero(tcs->slots, MAX_TCS_SLOTS);
-		raw_spin_unlock_irqrestore(&tcs->tcs_lock, flags);
+		spin_unlock_irqrestore(&tcs->tcs_lock, flags);
 	} while (++type < ARRAY_SIZE(inv_types));
 
 	return 0;
@@ -1053,9 +1053,9 @@ static int tcs_control_write(struct mbox_chan *chan, struct tcs_mbox_msg *msg)
 		return -EINVAL;
 	}
 
-	raw_spin_lock_irqsave(&tcs->tcs_lock, flags);
+	spin_lock_irqsave(&tcs->tcs_lock, flags);
 	__tcs_write_hidden(tcs->drv, drv->drv_id, msg);
-	raw_spin_unlock_irqrestore(&tcs->tcs_lock, flags);
+	spin_unlock_irqrestore(&tcs->tcs_lock, flags);
 
 	return 0;
 }
@@ -1210,7 +1210,7 @@ static int rsc_drv_probe(struct platform_device *pdev)
 		tcs->num_tcs = val[2 * i + 1];
 		tcs->ncpt = (tcs->type == CONTROL_TCS) ? TCS_HIDDEN_MAX_SLOTS
 							: ncpt;
-		raw_spin_lock_init(&tcs->tcs_lock);
+		spin_lock_init(&tcs->tcs_lock);
 
 		if (tcs->num_tcs <= 0 || tcs->type == CONTROL_TCS)
 			continue;
@@ -1275,7 +1275,7 @@ static int rsc_drv_probe(struct platform_device *pdev)
 	drv->num_tcs = st;
 	drv->pdev = pdev;
 	INIT_LIST_HEAD(&drv->response_pending);
-	raw_spin_lock_init(&drv->drv_lock);
+	spin_lock_init(&drv->drv_lock);
 	tasklet_init(&drv->tasklet, tcs_notify_tx_done, (unsigned long)drv);
 
 	drv->name = of_get_property(pdev->dev.of_node, "label", NULL);
@@ -1291,7 +1291,7 @@ static int rsc_drv_probe(struct platform_device *pdev)
 		return irq;
 
 	ret = devm_request_irq(&pdev->dev, irq, tcs_irq_handler,
-			IRQF_TRIGGER_HIGH | IRQF_NO_SUSPEND | IRQF_NO_THREAD,
+			IRQF_TRIGGER_HIGH | IRQF_NO_SUSPEND,
 			drv->name, drv);
 	if (ret)
 		return ret;
