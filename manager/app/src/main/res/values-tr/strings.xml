@@ -8,25 +8,17 @@
     <string name="home_module_count">Modüller: %d</string>
     <string name="home_unsupported">Desteklenmiyor</string>
     <string name="home_unsupported_reason">KernelSU artık yalnızca GKI çekirdeklerini destekliyor</string>
-    <string name="home_copied_to_clipboard">Panoya kopyalandı</string>
-    <string name="home_support">Destek</string>
 
     <string name="home_kernel">Kernel</string>
-    <string name="home_arch">Arch</string>
     <string name="home_manager_version">Yönetici Sürümü</string>
-    <string name="home_api">API Seviyesi</string>
-    <string name="home_abi">ABI</string>
-    <string name="home_fingerprint">Parmak izi</string>
-    <string name="home_securitypatch">Güvenlik Yaması</string>
+    <string name="home_fingerprint">Parmak İzi</string>
 
-    <string name="home_selinux_status">SELinux durumu</string>
+    <string name="home_selinux_status">SELinux Durumu</string>
     <string name="selinux_status_disabled">Devre dışı</string>
-    <string name="selinux_status_enforcing">Zorunlu</string>
-    <string name="selinux_status_permissive">Serbest</string>
+    <string name="selinux_status_enforcing">Enforcing</string>
+    <string name="selinux_status_permissive">Permissive</string>
     <string name="selinux_status_unknown">Bilinmiyor</string>
     <string name="superuser">Süper kullanıcı</string>
-    <string name="superuser_failed_to_grant_root">%d için root erişimi verilemedi</string>
-    <string name="superuser_allow_root_confirm">%s için root erişimi vereceğinizden emin misiniz?</string>
     <string name="module_failed_to_enable">Modül etkinleştirilemedi: %s</string>
     <string name="module_failed_to_disable">Modül devre dışı bırakılamadı: %s</string>
     <string name="module_empty">Yüklü modül yok</string>
@@ -43,7 +35,6 @@
     <string name="reboot_download">İndirme modunda Başlat</string>
     <string name="reboot_edl">EDL modunda Başlat</string>
     <string name="about">Hakkında</string>
-    <string name="require_kernel_version_8">KernelSU sürüm 8+ gerektir</string>
     <string name="module_uninstall_confirm">%s modülünü kaldırmak istediğinizden emin misiniz?</string>
     <string name="module_uninstall_success">%s kaldırıldı</string>
     <string name="module_uninstall_failed">Kaldırılamadı: %s</string>
@@ -63,4 +54,28 @@
     <string name="home_support_title">Bizi destekle</string>
     <string name="home_support_content">KernelSU ücretsiz ve açık kaynaktır ve her zaman öyle kalacaktır. Ancak bağış yaparak bize değer verdiğinizi gösterebilirsiniz.</string>
     <string name="about_source_code"><![CDATA[%1$s kaynak kodunu görüntüle<br/>%2$s kanalımıza katılın]]></string>
+    <string name="profile">Uygulama profili</string>
+    <string name="profile_default">Varsayılan</string>
+    <string name="profile_template">Örnek</string>
+    <string name="profile_custom">Özel</string>
+    <string name="profile_name">Profil adı</string>
+    <string name="profile_namespace">Ad alanını bağla</string>
+    <string name="profile_namespace_inherited">Kalıtsal</string>
+    <string name="profile_namespace_global">Küresel</string>
+    <string name="profile_namespace_individual">Bireysel</string>
+    <string name="profile_groups">Gruplar</string>
+    <string name="profile_capabilities">Yetkiler</string>
+    <string name="profile_selinux_context">SELinux içeriği</string>
+    <string name="profile_umount_modules">Modüllerin bağlantısını kes</string>
+    <string name="failed_to_update_app_profile">%s için uygulama profili güncellenemedi.</string>
+    <string name="require_kernel_version">Mevcut kernel versiyonu %d yöneticinin düzgün çalışabilmesi için çok düşük. Lütfen %d veya yukarısına yükseltin!</string>
+    <string name="settings_umount_modules_default">Varsayılan olarak modüllerin bağlantısını kesin</string>
+    <string name="settings_umount_modules_default_summary">Uygulama profillerindeki \"Modüllerin bağlantısını kesme\" seçeneği için varsayılan değer. Etkinleştirilirse, profil ayarı yapılmamış uygulamalar için modüllerin sistemde yaptığı tüm değişiklikler kaldırılacaktır.</string>
+    <string name="profile_umount_modules_summary">Bu seçeneğin etkinleştirilmesi ile, bu uygulama için modüller tarafından değiştirilen tüm dosyaların KernelSU tarafından geri alınmasına izin verilecektir.</string>
+    <string name="profile_selinux_domain">Etki alanı</string>
+    <string name="profile_selinux_rules">Kurallar</string>
+    <string name="module_update">Güncelle</string>
+    <string name="module_downloading">Modül indiriliyor: %s</string>
+    <string name="module_start_downloading">İndirme başladı: %s</string>
+    <string name="new_version_available">Yeni versiyon: %s mevcut, indirmek için tıklayın</string>
 </resources>
