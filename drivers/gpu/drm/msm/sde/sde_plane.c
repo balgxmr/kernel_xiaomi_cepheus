@@ -125,8 +125,12 @@ struct sde_plane {
 	bool revalidate;
 	bool xin_halt_forced_clk;
 
+	const struct drm_msm_pcc *pcc_cfg;
+	uint32_t pcc_coeff[9];
 	struct sde_csc_cfg csc_cfg;
+	struct sde_csc_cfg csc_pcc_cfg;
 	struct sde_csc_cfg *csc_usr_ptr;
+	struct sde_csc_cfg *csc_pcc_ptr;
 	struct sde_csc_cfg *csc_ptr;
 
 	const struct sde_sspp_sub_blks *pipe_sblk;
@@ -144,6 +148,8 @@ struct sde_plane {
 	struct sde_debugfs_regset32 debugfs_scaler;
 	struct sde_debugfs_regset32 debugfs_csc;
 	bool debugfs_default_scale;
+
+	u8 fod_dim_alpha;
 };
 
 #define to_sde_plane(x) container_of(x, struct sde_plane, base)
@@ -1399,6 +1405,121 @@ static inline void _sde_plane_setup_csc(struct sde_plane *psde)
 			psde->csc_ptr->csc_mv[2]);
 }
 
+#define CSC_MASK			0x7fffff
+#define CSC_ONE				(1 << 16)
+#define CSC_DGM_ONE			(1 << 9)
+#define CSC_10BIT_LIMIT			0x3ff
+#define CSC_8BIT_LIMIT			0xff
+#define PCC_MASK			0x3ffff
+#define PCC_ONE				(1 << 15)
+#define FOD_DIM_ALPHA_MAX		255
+
+#define CSC_BIAS_CLAMP(value) \
+	{ 0, 0, 0 }, \
+	{ 0, 0, 0 }, \
+	{ 0, value, 0, value, 0, value }, \
+	{ 0, value, 0, value, 0, value }
+
+static const struct drm_msm_pcc sde_identity_pcc_cfg = {
+	.r = { .r = PCC_ONE },
+	.g = { .g = PCC_ONE },
+	.b = { .b = PCC_ONE },
+};
+static const struct sde_csc_cfg sde_identity_csc_cfg = {
+	{
+		CSC_ONE, 0, 0,
+		0, CSC_ONE, 0,
+		0, 0, CSC_ONE,
+	},
+	CSC_BIAS_CLAMP(CSC_8BIT_LIMIT),
+};
+static const struct sde_csc_cfg sde_identity_csc10_cfg = {
+	{
+		CSC_ONE, 0, 0,
+		0, CSC_ONE, 0,
+		0, 0, CSC_ONE,
+	},
+	CSC_BIAS_CLAMP(CSC_10BIT_LIMIT),
+};
+static const struct sde_csc_cfg sde_identity_csc_dgm_cfg = {
+	{
+		CSC_DGM_ONE, 0, 0,
+		0, CSC_DGM_ONE, 0,
+		0, 0, CSC_DGM_ONE,
+	},
+};
+
+static inline s32 csc_to_signed(u32 v)
+{
+	return sign_extend32(v, __fls(CSC_MASK));
+}
+
+static inline u32 csc_to_unsigned(s32 v)
+{
+	return ((u32) v) & CSC_MASK;
+}
+
+static inline s32 pcc_to_signed(u32 v)
+{
+	return sign_extend32(v, __fls(PCC_MASK));
+}
+
+static inline void _sde_plane_mul_csc_pcc(struct sde_plane *psde,
+					  const struct sde_csc_cfg *csc_cfg)
+{
+	unsigned int fod_dim_scale = FOD_DIM_ALPHA_MAX - psde->fod_dim_alpha;
+	unsigned int i, j, u;
+
+	memcpy(&psde->csc_pcc_cfg, csc_cfg, sizeof(psde->csc_pcc_cfg));
+
+	for (i = 0; i < 3; i++) {
+		for (j = 0; j < 3; j++) {
+			unsigned int ij = i * 3 + j;
+			s64 sum = 0;
+
+			for (u = 0; u < 3; u++) {
+				unsigned int iu = i * 3 + u;
+				unsigned int uj = u * 3 + j;
+				s64 csc = csc_to_signed(csc_cfg->csc_mv[uj]);
+				s64 pcc = pcc_to_signed(psde->pcc_coeff[iu]);
+
+				sum += csc * pcc;
+			}
+
+			sum = mult_frac(sum, fod_dim_scale,
+					PCC_ONE * FOD_DIM_ALPHA_MAX);
+
+			psde->csc_pcc_cfg.csc_mv[ij] = csc_to_unsigned(sum);
+		}
+	}
+}
+
+static inline void _sde_plane_setup_csc_pcc(struct sde_plane *psde)
+{
+	const struct sde_csc_cfg *csc_ptr = psde->csc_ptr;
+
+	psde->csc_pcc_ptr = NULL;
+
+	if (!psde->pcc_cfg)
+		return;
+
+	if (!csc_ptr) {
+		if (psde->features & BIT(SDE_SSPP_CSC_10BIT)) {
+			csc_ptr = &sde_identity_csc10_cfg;
+		} else if (psde->features & BIT(SDE_SSPP_CSC)) {
+			csc_ptr = &sde_identity_csc_cfg;
+		} else if (psde->features & BIT(SDE_SSPP_DGM_CSC)) {
+			csc_ptr = &sde_identity_csc_dgm_cfg;
+		} else {
+			return;
+		}
+	}
+
+	_sde_plane_mul_csc_pcc(psde, csc_ptr);
+
+	psde->csc_pcc_ptr = &psde->csc_pcc_cfg;
+}
+
 static void sde_color_process_plane_setup(struct drm_plane *plane)
 {
 	struct sde_plane *psde;
@@ -1683,7 +1804,8 @@ static int _sde_plane_color_fill(struct sde_plane *psde,
 			psde->pipe_hw->ops.setup_format(psde->pipe_hw,
 					fmt, blend_enable,
 					SDE_SSPP_SOLID_FILL,
-					pstate->multirect_index);
+					pstate->multirect_index,
+					false);
 
 		if (psde->pipe_hw->ops.setup_rects)
 			psde->pipe_hw->ops.setup_rects(psde->pipe_hw,
@@ -3830,10 +3952,30 @@ exit:
 	return ret;
 }
 
+struct sde_csc_cfg *sde_plane_get_csc_cfg(struct drm_plane *plane)
+{
+	struct sde_plane_state *pstate;
+	struct sde_csc_cfg *csc_ptr;
+	struct sde_plane *psde;
+
+	psde = to_sde_plane(plane);
+	pstate = to_sde_plane_state(plane->state);
+
+	if (sde_plane_is_fod_layer(&pstate->base))
+		csc_ptr = NULL;
+	else if (psde->csc_pcc_ptr)
+		csc_ptr = psde->csc_pcc_ptr;
+	else
+		csc_ptr = psde->csc_ptr;
+
+	return csc_ptr;
+}
+
 void sde_plane_flush(struct drm_plane *plane)
 {
 	struct sde_plane *psde;
 	struct sde_plane_state *pstate;
+	struct sde_csc_cfg *csc_ptr;
 
 	if (!plane || !plane->state) {
 		SDE_ERROR("invalid plane\n");
@@ -3842,6 +3984,8 @@ void sde_plane_flush(struct drm_plane *plane)
 
 	psde = to_sde_plane(plane);
 	pstate = to_sde_plane_state(plane->state);
+
+	csc_ptr = sde_plane_get_csc_cfg(&psde->base);
 
 	/*
 	 * These updates have to be done immediately before the plane flush
@@ -3853,8 +3997,8 @@ void sde_plane_flush(struct drm_plane *plane)
 	else if (psde->color_fill & SDE_PLANE_COLOR_FILL_FLAG)
 		/* force 100% alpha */
 		_sde_plane_color_fill(psde, psde->color_fill, 0xFF);
-	else if (psde->pipe_hw && psde->csc_ptr && psde->pipe_hw->ops.setup_csc)
-		psde->pipe_hw->ops.setup_csc(psde->pipe_hw, psde->csc_ptr);
+	else if (psde->pipe_hw && csc_ptr && psde->pipe_hw->ops.setup_csc)
+		psde->pipe_hw->ops.setup_csc(psde->pipe_hw, csc_ptr);
 
 	/* flag h/w flush complete */
 	if (plane->state)
@@ -3876,10 +4020,56 @@ void sde_plane_set_error(struct drm_plane *plane, bool error)
 	psde->is_error = error;
 }
 
+static inline void _set_plane_set_fod_dim_alpha(struct sde_plane *psde,
+						struct sde_plane_state *pstate)
+{
+	if (psde->fod_dim_alpha == pstate->fod_dim_alpha)
+		return;
+
+	psde->fod_dim_alpha = pstate->fod_dim_alpha;
+
+	pstate->dirty |= SDE_PLANE_DIRTY_RECTS;
+}
+
+static inline void _sde_plane_set_csc_pcc(struct sde_plane *psde,
+					  struct sde_plane_state *pstate,
+					  struct drm_crtc *crtc)
+{
+	const struct drm_msm_pcc *pcc_cfg = sde_cp_crtc_get_pcc_cfg(crtc);
+
+	if (!pcc_cfg && psde->fod_dim_alpha)
+		pcc_cfg = &sde_identity_pcc_cfg;
+
+	if (pcc_cfg == psde->pcc_cfg)
+		return;
+
+	psde->pcc_cfg = pcc_cfg;
+
+	if (pcc_cfg) {
+		unsigned int i = 0;
+
+#define set_coeff(m) \
+	psde->pcc_coeff[i++] = psde->pcc_cfg->m;
+
+		set_coeff(r.r);
+		set_coeff(r.g);
+		set_coeff(r.b);
+		set_coeff(g.r);
+		set_coeff(g.g);
+		set_coeff(g.b);
+		set_coeff(b.r);
+		set_coeff(b.g);
+		set_coeff(b.b);
+	}
+
+	pstate->dirty |= SDE_PLANE_DIRTY_RECTS;
+}
+
 static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 				struct drm_plane_state *old_state)
 {
 	uint32_t nplanes, src_flags = 0;
+	struct sde_csc_cfg *csc_ptr;
 	struct sde_plane *psde;
 	struct drm_plane_state *state;
 	struct sde_plane_state *pstate;
@@ -3960,6 +4150,7 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 		case PLANE_PROP_V_DECIMATE:
 		case PLANE_PROP_SRC_CONFIG:
 		case PLANE_PROP_ZPOS:
+		case PLANE_PROP_FOD:
 		case PLANE_PROP_EXCL_RECT_V1:
 			pstate->dirty |= SDE_PLANE_DIRTY_RECTS;
 			break;
@@ -3977,7 +4168,6 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 		case PLANE_PROP_ALPHA:
 		case PLANE_PROP_INPUT_FENCE:
 		case PLANE_PROP_BLEND_OP:
-		case PLANE_PROP_FOD:
 			/* no special action required */
 			break;
 		case PLANE_PROP_FB_TRANSLATION_MODE:
@@ -4024,6 +4214,9 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 	 */
 	_sde_plane_sspp_atomic_check_mode_changed(psde, state,
 								old_state);
+
+	_set_plane_set_fod_dim_alpha(psde, pstate);
+	_sde_plane_set_csc_pcc(psde, pstate, crtc);
 
 	/* re-program the output rects always if partial update roi changed */
 	if (sde_crtc_is_crtc_roi_dirty(crtc->state))
@@ -4153,6 +4346,16 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 					&pstate->line_insertion_cfg);
 	}
 
+	/* update csc */
+	if (SDE_FORMAT_IS_YUV(fmt))
+		_sde_plane_setup_csc(psde);
+	else
+		psde->csc_ptr = 0;
+
+	_sde_plane_setup_csc_pcc(psde);
+
+	csc_ptr = sde_plane_get_csc_cfg(&psde->base);
+
 	if ((pstate->dirty & SDE_PLANE_DIRTY_FORMAT ||
 			pstate->dirty & SDE_PLANE_DIRTY_RECTS) &&
 			psde->pipe_hw->ops.setup_format) {
@@ -4165,7 +4368,7 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 		/* update format */
 		psde->pipe_hw->ops.setup_format(psde->pipe_hw, fmt,
 				pstate->const_alpha_en, src_flags,
-				pstate->multirect_index);
+				pstate->multirect_index, !!csc_ptr);
 
 		if (psde->pipe_hw->ops.setup_cdp) {
 			struct sde_hw_pipe_cdp_cfg *cdp_cfg = &pstate->cdp_cfg;
@@ -4217,12 +4420,6 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 					psde->pipe_hw, &pstate->sc_cfg);
 		}
 
-		/* update csc */
-		if (SDE_FORMAT_IS_YUV(fmt))
-			_sde_plane_setup_csc(psde);
-		else
-			psde->csc_ptr = 0;
-
 		if (psde->pipe_hw->ops.setup_inverse_pma) {
 			uint32_t pma_mode = 0;
 
@@ -4236,7 +4433,7 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 
 		if (psde->pipe_hw->ops.setup_dgm_csc)
 			psde->pipe_hw->ops.setup_dgm_csc(psde->pipe_hw,
-				pstate->multirect_index, psde->csc_usr_ptr);
+				pstate->multirect_index, csc_ptr);
 	}
 
 	sde_color_process_plane_setup(plane);
@@ -4318,6 +4515,11 @@ int sde_plane_is_fod_layer(const struct drm_plane_state *drm_state)
 	pstate = to_sde_plane_state(drm_state);
 
 	return sde_plane_get_property(pstate, PLANE_PROP_FOD);
+}
+
+void sde_plane_set_fod_dim_alpha(struct sde_plane_state *pstate, u8 alpha)
+{
+	pstate->fod_dim_alpha = alpha;
 }
 
 static void sde_plane_atomic_update(struct drm_plane *plane,
@@ -4665,6 +4867,12 @@ static void _sde_plane_install_properties(struct drm_plane *plane,
 			PLANE_PROP_FB_TRANSLATION_MODE);
 }
 
+#define cmp_and_set(old, new) \
+	if ((old) != (new)) { \
+		(old) = (new); \
+		changed = true; \
+	}
+
 static inline void _sde_plane_set_csc_v1(struct sde_plane *psde,
 		void __user *usr_ptr)
 {
@@ -4829,6 +5037,7 @@ static void _sde_plane_set_excl_rect_v1(struct sde_plane *psde,
 		struct sde_plane_state *pstate, void __user *usr_ptr)
 {
 	struct drm_clip_rect excl_rect_v1;
+	bool changed = false;
 
 	if (!psde || !pstate) {
 		SDE_ERROR("invalid argument(s)\n");
@@ -4847,10 +5056,13 @@ static void _sde_plane_set_excl_rect_v1(struct sde_plane *psde,
 	}
 
 	/* populate from user space */
-	pstate->excl_rect.x = excl_rect_v1.x1;
-	pstate->excl_rect.y = excl_rect_v1.y1;
-	pstate->excl_rect.w = excl_rect_v1.x2 - excl_rect_v1.x1;
-	pstate->excl_rect.h = excl_rect_v1.y2 - excl_rect_v1.y1;
+	cmp_and_set(pstate->excl_rect.x, excl_rect_v1.x1);
+	cmp_and_set(pstate->excl_rect.y, excl_rect_v1.y1);
+	cmp_and_set(pstate->excl_rect.w, excl_rect_v1.x2 - excl_rect_v1.x1);
+	cmp_and_set(pstate->excl_rect.h, excl_rect_v1.y2 - excl_rect_v1.y1);
+
+	if (!changed)
+		return;
 
 	SDE_DEBUG_PLANE(psde, "excl_rect: {%d,%d,%d,%d}\n",
 			pstate->excl_rect.x, pstate->excl_rect.y,
