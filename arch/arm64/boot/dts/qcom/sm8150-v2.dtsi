@@ -31,8 +31,6 @@
 
 &clock_cpucc {
 	qcom,cpufreq-table-0 =
-		< 576000>,
-		< 672000>,
 		< 768000>,
 		< 844800>,
 		< 940800>,
@@ -223,8 +221,6 @@
 &energy_costs {
 	CPU_COST_0: core-cost0 {
 		busy-cost-data = <
-			 576000 85
-			 672000 71
 			 768000 76
 			 844800 81
 			 940800 89
@@ -296,8 +292,6 @@
 
 	CLUSTER_COST_0: cluster-cost0 {
 		busy-cost-data = <
-			576000   4
-			672000   5
 			768000   5
 			844800   6
 			940800   7
