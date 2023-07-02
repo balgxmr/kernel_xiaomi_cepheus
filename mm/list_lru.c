@@ -160,7 +160,6 @@ EXPORT_SYMBOL_GPL(list_lru_isolate_move);
 static unsigned long __list_lru_count_one(struct list_lru *lru,
 					  int nid, int memcg_idx)
 {
-#if defined(CONFIG_MEMCG) && !defined(CONFIG_SLOB)
 	struct list_lru_node *nlru = &lru->node[nid];
 	struct list_lru_one *l;
 	unsigned long count;
@@ -171,9 +170,6 @@ static unsigned long __list_lru_count_one(struct list_lru *lru,
 	spin_unlock(&nlru->lock);
 
 	return count;
-#else
-	return READ_ONCE(lru->node[nid].lru.nr_items);
-#endif
 }
 
 unsigned long list_lru_count_one(struct list_lru *lru,
@@ -325,7 +321,7 @@ static int memcg_init_list_lru_node(struct list_lru_node *nlru)
 {
 	int size = memcg_nr_cache_ids;
 
-	nlru->memcg_lrus = kvmalloc_array(size, sizeof(void *), GFP_KERNEL);
+	nlru->memcg_lrus = kvmalloc(size * sizeof(void *), GFP_KERNEL);
 	if (!nlru->memcg_lrus)
 		return -ENOMEM;
 
@@ -351,7 +347,7 @@ static int memcg_update_list_lru_node(struct list_lru_node *nlru,
 	BUG_ON(old_size > new_size);
 
 	old = nlru->memcg_lrus;
-	new = kvmalloc_array(new_size, sizeof(void *), GFP_KERNEL);
+	new = kvmalloc(new_size * sizeof(void *), GFP_KERNEL);
 	if (!new)
 		return -ENOMEM;
 
