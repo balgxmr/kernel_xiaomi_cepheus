@@ -2048,6 +2048,7 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 {
 	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
 	struct page *page;
+	int nr_pages;
 	int nr_moved = 0;
 
 	while (!list_empty(list)) {
@@ -2055,9 +2056,11 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 		lruvec = mem_cgroup_page_lruvec(page, pgdat);
 
 		VM_BUG_ON_PAGE(PageLRU(page), page);
-		list_del(&page->lru);
 		SetPageLRU(page);
-		add_page_to_lru_list(page, lruvec, lru);
+
+		nr_pages = hpage_nr_pages(page);
+		update_lru_size(lruvec, lru, page_zonenum(page), nr_pages);
+		list_move(&page->lru, &lruvec->lists[lru]);
 
 		if (put_page_testzero(page)) {
 			__ClearPageLRU(page);
@@ -2072,7 +2075,7 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 			} else
 				list_add(&page->lru, pages_to_free);
 		} else {
-			nr_moved += hpage_nr_pages(page);
+			nr_moved += nr_pages;
 		}
 	}
 
