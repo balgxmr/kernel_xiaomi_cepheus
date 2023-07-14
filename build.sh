@@ -61,7 +61,7 @@ echo -e "${restore}"
 
 
 # Vars
-BASE_AK_VER="REVUELTO-MI9-KSU-"
+BASE_AK_VER="REVUELTO-MI9-KP-"
 DATE=`date +"%Y%m%d-%H%M"`
 AK_VER="$BASE_AK_VER$VER"
 ZIP_NAME="$AK_VER"-"$DATE"
