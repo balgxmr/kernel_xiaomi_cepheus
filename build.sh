@@ -9,7 +9,7 @@ restore='\033[0m'
 clear
 
 # Resources
-export CLANG_PATH=~/pixelos/prebuilts/clang/host/linux-x86/clang-azure/bin
+export CLANG_PATH=~/pixelos/prebuilts/clang/host/linux-x86/clang-playground/bin
 export PATH=${CLANG_PATH}:${PATH}
 export CROSS_COMPILE=${CLANG_PATH}/aarch64-linux-gnu-
 export CROSS_COMPILE_ARM32=${CLANG_PATH}/arm-linux-gnueabi-
@@ -56,14 +56,12 @@ DATE_START=$(date +"%s")
 
 
 echo -e "${green}"
-echo "-----------------"
 echo "Making Kernel:"
-echo "-----------------"
 echo -e "${restore}"
 
 
 # Vars
-BASE_AK_VER="POST-SOVIET-MI9-"
+BASE_AK_VER="REVUELTO-MI9-"
 DATE=`date +"%Y%m%d-%H%M"`
 AK_VER="$BASE_AK_VER$VER"
 ZIP_NAME="$AK_VER"-"$DATE"
@@ -71,61 +69,31 @@ ZIP_NAME="$AK_VER"-"$DATE"
 #export LOCALVERSION=~`echo $AK_VER`
 export ARCH=arm64
 export SUBARCH=arm64
-export KBUILD_BUILD_USER=Mihau
-export KBUILD_BUILD_HOST=Mihau
+export KBUILD_BUILD_USER=balgxmr
+export KBUILD_BUILD_HOST=balgxmr
 
 echo
-
-while read -p "Do you want to clean stuffs (y/n)? " cchoice
-do
-case "$cchoice" in
-	y|Y )
-		clean_all
-		echo
-		echo "All Cleaned now."
-		break
-		;;
-	n|N )
-		break
-		;;
-	* )
-		echo
-		echo "Invalid try again!"
-		echo
-		;;
-esac
-done
-
+echo Starting cleaning...
+echo
+clean_all
+echo
+echo All cleaned.
+echo
+echo Building kernel...
 echo
 
-while read -p "Do you want to build? (y/n)" dchoice
-do
-case "$dchoice" in
-	y|Y )
-		make_kernel
-		make_boot
-                make_zip
-		break
-		;;
-	n|N )
-		break
-		;;
-	* )
-		echo
-		echo "Invalid try again!"
-		echo
-		;;
-esac
-done
-
-
-echo -e "${green}"
-echo "-------------------"
-echo "Build Completed in:"
-echo "-------------------"
-echo -e "${restore}"
+make_kernel
+make_boot
+make_zip
 
 DATE_END=$(date +"%s")
 DIFF=$(($DATE_END - $DATE_START))
-echo "Time: $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds."
+
+echo
+find $ZIP_MOVE -type f -mmin -5 -mmin +0
+
+echo
+echo -e "${green}"
+echo "### build completed in ($(($DIFF / 60)):$(($DIFF % 60)) (mm:ss))."
+echo -e "${restore}"
 echo
