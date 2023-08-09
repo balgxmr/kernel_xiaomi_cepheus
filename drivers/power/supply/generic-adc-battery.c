@@ -138,6 +138,9 @@ static int read_channel(struct gab *adc_bat, enum power_supply_property psp,
 			result);
 	if (ret < 0)
 		pr_debug("read channel error\n");
+	else
+		*result *= 1000;
+
 	return ret;
 }
 
