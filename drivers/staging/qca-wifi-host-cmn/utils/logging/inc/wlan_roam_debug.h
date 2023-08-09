@@ -125,7 +125,6 @@ void wlan_roam_debug_log(uint8_t vdev_id, uint8_t op,
  * Return: none
  */
 void wlan_roam_debug_dump_table(void);
-<<<<<<< HEAD
 
 #ifdef WLAN_LOGGING_BUFFERS_DYNAMICALLY
 /**
