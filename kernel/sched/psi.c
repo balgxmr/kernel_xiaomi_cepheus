@@ -1220,7 +1220,10 @@ struct psi_trigger *psi_trigger_create(struct psi_group *group,
 	t->event = 0;
 	t->last_event_time = 0;
 	init_waitqueue_head(&t->event_wait);
+<<<<<<< HEAD
 	t->pending_event = false;
+=======
+>>>>>>> e8c1340cbb0f24693dd9056f8d5a7808e4597b80
 
 	mutex_lock(&group->trigger_lock);
 
