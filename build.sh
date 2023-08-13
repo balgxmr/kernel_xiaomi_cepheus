@@ -94,6 +94,6 @@ find $ZIP_MOVE -type f -mmin -5 -mmin +0
 
 echo
 echo -e "${green}"
-echo "### build completed in ($(($DIFF / 60)):$(($DIFF % 60)) (mm:ss))."
+echo "### build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) second(s)!"
 echo -e "${restore}"
 echo
