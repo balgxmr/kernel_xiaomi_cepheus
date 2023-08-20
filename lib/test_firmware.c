@@ -159,7 +159,7 @@ static int __kstrncpy(char **dst, const char *name, size_t count, gfp_t gfp)
 {
 	*dst = kstrndup(name, count, gfp);
 	if (!*dst)
-		return -ENOSPC;
+		return -ENOMEM;
 	return count;
 }
 
@@ -456,7 +456,7 @@ static ssize_t trigger_request_store(struct device *dev,
 
 	name = kstrndup(buf, count, GFP_KERNEL);
 	if (!name)
-		return -ENOSPC;
+		return -ENOMEM;
 
 	pr_info("loading '%s'\n", name);
 
@@ -497,7 +497,7 @@ static ssize_t trigger_async_request_store(struct device *dev,
 
 	name = kstrndup(buf, count, GFP_KERNEL);
 	if (!name)
-		return -ENOSPC;
+		return -ENOMEM;
 
 	pr_info("loading '%s'\n", name);
 
@@ -540,7 +540,7 @@ static ssize_t trigger_custom_fallback_store(struct device *dev,
 
 	name = kstrndup(buf, count, GFP_KERNEL);
 	if (!name)
-		return -ENOSPC;
+		return -ENOMEM;
 
 	pr_info("loading '%s' using custom fallback mechanism\n", name);
 
@@ -725,9 +725,6 @@ ssize_t trigger_batched_requests_async_store(struct device *dev,
 
 	mutex_lock(&test_fw_mutex);
 
-<<<<<<< HEAD
-	test_fw_config->reqs = vzalloc(array3_size(sizeof(struct test_batched_req), test_fw_config->num_requests, 2));
-=======
         if (test_fw_config->reqs) {
                 rc = -EBUSY;
                 goto out_bail;
@@ -735,7 +732,6 @@ ssize_t trigger_batched_requests_async_store(struct device *dev,
 
 	test_fw_config->reqs = vzalloc(sizeof(struct test_batched_req) *
 				       test_fw_config->num_requests * 2);
->>>>>>> 4dbbc9b492fb6a28528de6a1958263780693e96c
 	if (!test_fw_config->reqs) {
 		rc = -ENOMEM;
 		goto out;
