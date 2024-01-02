@@ -3198,6 +3198,8 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info,
 			info->fod_coordinate_update = true;
 			__set_bit(touchId, &info->fod_id);
 			input_report_abs(info->input_dev, ABS_MT_WIDTH_MINOR, info->fod_overlap);
+			input_report_key(info->input_dev, BTN_INFO, 1);
+			input_report_key(info->input_dev, KEY_INFO, 1);
 			logError(1,	"%s  %s :  FOD Press :%d, fod_id:%08x\n", tag, __func__,
 			touchId, info->fod_id);
 		} else if (__test_and_clear_bit(touchId, &info->fod_id)) {
@@ -3218,6 +3220,10 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info,
 		"%s  %s :  Event 0x%02x - ID[%d], (x, y, z) = (%3d, %3d, %3d) type = %d, size = %d, overlap:%d\n",
 		tag, __func__, *event, touchId, x, y, z, touchType, area_size,
 		info->fod_overlap);
+	if (event[0] == 0x13)
+		logError(1,
+			"%s  %s :  Event 0x%02x - Press ID[%d] type = %d\n", tag,
+				__func__, event[0], touchId, touchType);
 
 #ifndef CONFIG_FTS_FOD_AREA_REPORT
 no_report:
@@ -3346,6 +3352,9 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info,
 			__func__, touchId, touchType);
 	else
 #endif
+		logError(1,
+			"%s  %s :  Event 0x%02x - release ID[%d] type = %d\n", tag,
+			__func__, event[0], touchId, touchType);
 
 	input_sync(info->input_dev);
 #ifdef CONFIG_FTS_FOD_AREA_REPORT
@@ -3654,7 +3663,6 @@ static void fts_gesture_event_handler(struct fts_ts_info *info,
 {
 	int value;
 	int needCoords = 0;
-	char ch[64] = { 0x0, };
 #ifdef CONFIG_FTS_FOD_AREA_REPORT
 	int touch_area;
 	int fod_overlap;
@@ -3738,8 +3746,6 @@ static void fts_gesture_event_handler(struct fts_ts_info *info,
 				goto gesture_done;
 			value = KEY_WAKEUP;
 			logError(0, "%s %s: double tap ! \n", tag, __func__);
-			info->dbclick_count++;
-			snprintf(ch, sizeof(ch), "%d", info->dbclick_count);
 			needCoords = 0;
 			break;
 
@@ -4408,7 +4414,7 @@ static int fts_interrupt_install(struct fts_ts_info *info)
 	/* disable interrupts in any case */
 	error = fts_disableInterrupt();
 	logError(1, "%s Interrupt Mode\n", tag);
-	if (request_threaded_irq(info->client->irq, NULL, fts_event_handler, info->board->irq_flags,
+	if (request_threaded_irq(info->client->irq, NULL, fts_event_handler, info->board->irq_flags | IRQF_PERF_AFFINE,
 			 FTS_TS_DRV_NAME, info)) {
 		logError(1, "%s Request irq failed\n", tag);
 		kfree(info->event_dispatch_table);
@@ -4858,7 +4864,7 @@ static int fts_drm_state_chg_callback(struct notifier_block *nb,
 		logError(1, "%s %s: val:%lu,blank:%u\n", tag, __func__, val, blank);
 
 		if (val == MSM_DRM_EARLY_EVENT_BLANK && (blank == MSM_DRM_BLANK_POWERDOWN ||
-				blank == MSM_DRM_BLANK_LP)) {
+				blank == MSM_DRM_BLANK_LP1 || blank == MSM_DRM_BLANK_LP2)) {
 			if (info->sensor_sleep)
 				return NOTIFY_OK;
 
@@ -5270,7 +5276,6 @@ static void fts_switch_mode_work(struct work_struct *work)
 	static const char *fts_gesture_on = "01 20";
 	char *gesture_result;
 	int size = 6 * 2 + 1;
-	char ch[16] = { 0x0, };
 
 	logError(1, "%s %s mode:%d\n", tag, __func__, value);
 
@@ -5294,9 +5299,6 @@ static void fts_switch_mode_work(struct work_struct *work)
 				gesture_result = NULL;
 			}
 		}
-		snprintf(ch, sizeof(ch), "%s",
-			 (value -
-			  INPUT_EVENT_WAKUP_MODE_OFF) ? "enabled" : "disabled");
 	} else if (value >= INPUT_EVENT_COVER_MODE_OFF
 		   && value <= INPUT_EVENT_COVER_MODE_ON) {
 		info->glove_enabled = value - INPUT_EVENT_COVER_MODE_OFF;
@@ -5712,114 +5714,6 @@ static const struct dev_pm_ops fts_dev_pm_ops = {
 };
 #endif
 
-#ifdef CONFIG_TOUCHSCREEN_ST_DEBUG_FS
-static void tpdbg_shutdown(struct fts_ts_info *info, bool sleep)
-{
-	u8 settings[4] = { 0 };
-	info->mode = MODE_NOTHING;
-
-	if (sleep) {
-		logError(0, "%s %s: Sense OFF! \n", tag, __func__);
-		setScanMode(SCAN_MODE_ACTIVE, 0x00);
-	} else {
-		settings[0] = 0x01;
-		logError(0, "%s %s: Sense ON! \n", tag, __func__);
-		setScanMode(SCAN_MODE_ACTIVE, settings[0]);
-		info->mode |= (SCAN_MODE_ACTIVE << 24);
-		MODE_ACTIVE(info->mode, settings[0]);
-	}
-}
-
-static void tpdbg_suspend(struct fts_ts_info *info, bool enable)
-{
-	if (enable)
-		queue_work(info->event_wq, &info->suspend_work);
-	else
-		queue_work(info->event_wq, &info->resume_work);
-}
-
-static int tpdbg_open(struct inode *inode, struct file *file)
-{
-	file->private_data = inode->i_private;
-
-	return 0;
-}
-
-static ssize_t tpdbg_read(struct file *file, char __user *buf, size_t size,
-			  loff_t *ppos)
-{
-	const char *str = "cmd support as below:\n \
-				\necho \"irq-disable\" or \"irq-enable\" to ctrl irq\n \
-				\necho \"tp-sd-en\" of \"tp-sd-off\" to ctrl panel in or off sleep mode\n \
-				\necho \"tp-suspend-en\" or \"tp-suspend-off\" to ctrl panel in or off suspend status\n";
-
-	loff_t pos = *ppos;
-	int len = strlen(str);
-
-	if (pos < 0)
-		return -EINVAL;
-	if (pos >= len)
-		return 0;
-
-	if (copy_to_user(buf, str, len))
-		return -EFAULT;
-
-	*ppos = pos + len;
-
-	return len;
-}
-
-static ssize_t tpdbg_write(struct file *file, const char __user *buf,
-			   size_t size, loff_t *ppos)
-{
-	struct fts_ts_info *info = file->private_data;
-	char *cmd = kzalloc(size + 1, GFP_KERNEL);
-	int ret = size;
-
-	if (!cmd)
-		return -ENOMEM;
-
-	if (copy_from_user(cmd, buf, size)) {
-		ret = -EFAULT;
-		goto out;
-	}
-
-	cmd[size] = '\0';
-
-	if (!strncmp(cmd, "irq-disable", 11))
-		disable_irq(info->client->irq);
-	else if (!strncmp(cmd, "irq-enable", 10))
-		enable_irq(info->client->irq);
-	else if (!strncmp(cmd, "tp-sd-en", 8))
-		tpdbg_shutdown(info, true);
-	else if (!strncmp(cmd, "tp-sd-off", 9))
-		tpdbg_shutdown(info, false);
-	else if (!strncmp(cmd, "tp-suspend-en", 13))
-		tpdbg_suspend(info, true);
-	else if (!strncmp(cmd, "tp-suspend-off", 14))
-		tpdbg_suspend(info, false);
-out:
-	kfree(cmd);
-
-	return ret;
-}
-
-static int tpdbg_release(struct inode *inode, struct file *file)
-{
-	file->private_data = NULL;
-
-	return 0;
-}
-
-static const struct file_operations tpdbg_operations = {
-	.owner = THIS_MODULE,
-	.open = tpdbg_open,
-	.read = tpdbg_read,
-	.write = tpdbg_write,
-	.release = tpdbg_release,
-};
-#endif
-
 #ifdef CONFIG_SECURE_TOUCH
 int fts_secure_init(struct fts_ts_info *info)
 {
@@ -5896,7 +5790,6 @@ static int fts_probe(struct spi_device *client)
 	int retval;
 	int skip_5_1 = 0;
 	u16 bus_type;
-	u8 *tp_maker;
 
 	logError(1, "%s %s: driver ver: %s\n", tag, __func__,
 		 FTS_TS_DRV_VERSION);
@@ -6160,6 +6053,16 @@ static int fts_probe(struct spi_device *client)
 #ifdef CONFIG_DRM
 	info->notifier = fts_noti_block;
 #endif
+
+	/*
+	 * This *must* be done before request_threaded_irq is called.
+	 * Otherwise, if an interrupt is received before request is added,
+	 * but after the interrupt has been subscribed to, pm_qos_req
+	 * may be accessed before initialization in the interrupt handler.
+	 */
+	pm_qos_add_request(&info->pm_qos_req, PM_QOS_CPU_DMA_LATENCY,
+			PM_QOS_DEFAULT_VALUE);
+
 	logError(0, "%s Init Core Lib: \n", tag);
 	initCore(info);
 	/* init hardware device */
@@ -6255,25 +6158,10 @@ static int fts_probe(struct spi_device *client)
 	error = fts_proc_init();
 	if (error < OK)
 		logError(1, "%s Error: can not create /proc file! \n", tag);
-	info->dbclick_count = 0;
 
-	tp_maker = kzalloc(20, GFP_KERNEL);
-	if (tp_maker == NULL)
-		logError(1, "%s fail to alloc vendor name memory\n", tag);
-	else {
-		kfree(tp_maker);
-		tp_maker = NULL;
-	}
 	device_init_wakeup(&client->dev, 1);
 
 	init_completion(&info->pm_resume_completion);
-#ifdef CONFIG_TOUCHSCREEN_ST_DEBUG_FS
-	info->debugfs = debugfs_create_dir("tp_debug", NULL);
-	if (info->debugfs) {
-		debugfs_create_file("switch_state", 0660, info->debugfs, info,
-				    &tpdbg_operations);
-	}
-#endif
 
 	if (info->fts_tp_class == NULL)
 		info->fts_tp_class = class_create(THIS_MODULE, "touch");
@@ -6354,6 +6242,7 @@ ProbeErrorExit_7:
 #endif
 
 ProbeErrorExit_6:
+	pm_qos_remove_request(&info->pm_qos_req);
 	input_unregister_device(info->input_dev);
 
 ProbeErrorExit_5_1:
@@ -6397,6 +6286,7 @@ static int fts_remove(struct spi_device *client)
 	sysfs_remove_group(&client->dev.kobj, &info->attrs);
 	/* remove interrupt and event handlers */
 	fts_interrupt_uninstall(info);
+	pm_qos_remove_request(&info->pm_qos_req);
 #ifdef CONFIG_DRM
 	msm_drm_unregister_client(&info->notifier);
 #endif

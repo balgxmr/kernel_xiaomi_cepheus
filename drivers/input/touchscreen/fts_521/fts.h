@@ -38,6 +38,7 @@
 #include "fts_lib/ftsSoftware.h"
 #include "fts_lib/ftsHardware.h"
 #include <linux/completion.h>
+#include <linux/pm_qos.h>
 /****************** CONFIGURATION SECTION ******************/
 /** @defgroup conf_section	 Driver Configuration Section
 * Settings of the driver code in order to suit the HW set up and the application behavior
@@ -279,6 +280,7 @@ struct fts_ts_info {
 	struct workqueue_struct *event_wq;
 	struct workqueue_struct *irq_wq;
 	struct workqueue_struct *touch_feature_wq;
+	struct pm_qos_request pm_qos_req;
 
 #ifndef FW_UPDATE_ON_PROBE
 	struct delayed_work fwu_work;
@@ -329,10 +331,6 @@ struct fts_ts_info {
 	unsigned int doze_time;
 	unsigned int grip_pixel_def;
 	unsigned int doze_time_def;
-#ifdef CONFIG_TOUCHSCREEN_ST_DEBUG_FS
-	struct dentry *debugfs;
-#endif
-	int dbclick_count;
 	struct class *fts_tp_class;
 	struct device *fts_touch_dev;
 	char *current_clicknum_file;
