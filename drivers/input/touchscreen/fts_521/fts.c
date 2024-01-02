@@ -4414,7 +4414,7 @@ static int fts_interrupt_install(struct fts_ts_info *info)
 	/* disable interrupts in any case */
 	error = fts_disableInterrupt();
 	logError(1, "%s Interrupt Mode\n", tag);
-	if (request_threaded_irq(info->client->irq, NULL, fts_event_handler, info->board->irq_flags | IRQF_PERF_AFFINE,
+	if (request_threaded_irq(info->client->irq, NULL, fts_event_handler, info->board->irq_flags,
 			 FTS_TS_DRV_NAME, info)) {
 		logError(1, "%s Request irq failed\n", tag);
 		kfree(info->event_dispatch_table);
@@ -4864,7 +4864,7 @@ static int fts_drm_state_chg_callback(struct notifier_block *nb,
 		logError(1, "%s %s: val:%lu,blank:%u\n", tag, __func__, val, blank);
 
 		if (val == MSM_DRM_EARLY_EVENT_BLANK && (blank == MSM_DRM_BLANK_POWERDOWN ||
-				blank == MSM_DRM_BLANK_LP1 || blank == MSM_DRM_BLANK_LP2)) {
+				blank == MSM_DRM_BLANK_LP)) {
 			if (info->sensor_sleep)
 				return NOTIFY_OK;
 
